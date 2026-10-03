@@ -1,6 +1,6 @@
 # Episode 1 — What If Karna Had Joined the Pandavas?
 
-**Target length:** ~11–12 min (~1,650 words of narration at ~145 wpm)
+**Target length:** ~9–10 min (~1,350 words of narration at ~145 wpm). Section times below are approximate; update the description timestamps after the final edit.
 **Title options (A/B test):**
 - What If Karna Had Joined the Pandavas?
 - Karna Said No. What If He Had Said Yes?
