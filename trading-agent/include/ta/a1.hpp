@@ -21,11 +21,19 @@ struct A1Config {
     ScreenConfig screen;
     RiskConfig risk;
     CostModel cost;
-    ExitRules exits;                  // day-3 partial, day-20 time stop, 120-day cap, SMA10/20 trail
+    ExitRules exits;                  // day-3 partial, day-20 time stop, 250-day cap, SMA10/20 trail
     RegimeConfig regime;
     double tick = 0.05;               // NSE tick size
     double entry_limit_frac = 0.005;  // buy-stop-limit: limit 0.5% above the trigger
     double stop_adr_mult = 1.0;       // initial stop = fill x (1 - mult x ADR20), see README
+    // Volatility-scaled sizing (Barroso & Santa-Clara; Cederburg et al.: momentum was the
+    // one family where it held up in real time): risk x min(cap, target / sigma_n of the
+    // index). target 0 = expanding median of the index's own sigma_n (no look-ahead).
+    // Replaces the binary volatility-gate halving when an index series is supplied.
+    bool vol_scale = true;
+    std::size_t vol_n = 126;
+    double vol_target = 0;
+    double vol_scale_cap = 1.0;
 };
 
 // Inputs from outside the sleeve for one step: shared limits, the active-book
@@ -65,6 +73,7 @@ public:
 
 private:
     void enter(const std::string& date, const StepContext& ctx);
+    double vol_multiplier(const std::string& date) const;  // NaN when not computable
     void screen_for_tomorrow(const std::string& date, std::vector<KvRecord>* events);
 
     const MarketData& md_;
@@ -77,6 +86,7 @@ private:
     double pending_risk_mult_ = 1.0;   // volatility gate at the signal close
     bool pending_allowed_ = true;      // trend / crash gates at the signal close
     std::vector<std::pair<std::string, double>> last_scores_;
+    std::vector<double> index_vol_;  // index sigma_n per index bar, precomputed
     double last_equity_;
     std::string last_date_;
 };

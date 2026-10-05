@@ -67,7 +67,8 @@ std::vector<ScoredSymbol> score_universe(const std::vector<SymbolView>& views, c
         if (std::isnan(vol) || vol <= 0 || std::isnan(hi52)) continue;
         eligible.push_back(&v);
         f6m.push_back(ret(s, v.idx, 126) / vol);
-        f12m.push_back(ret(s, v.idx, kYear) / vol);
+        const std::size_t skip = std::min(cfg.mom_skip_days, kYear - 1);
+        f12m.push_back((s[v.idx - skip].close / s[v.idx - kYear].close - 1.0) / vol);
         fhigh.push_back(s[v.idx].close / hi52);
         f3m.push_back(ret(s, v.idx, 63));
     }

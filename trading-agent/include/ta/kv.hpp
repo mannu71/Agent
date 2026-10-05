@@ -40,5 +40,6 @@ void config_set(const Config& c, const std::string& key, double& field);
 void config_set(const Config& c, const std::string& key, int& field);
 void config_set(const Config& c, const std::string& key, std::size_t& field);
 void config_set(const Config& c, const std::string& key, std::string& field);
+void config_set(const Config& c, const std::string& key, bool& field);  // 0/1, true/false
 
 }  // namespace ta

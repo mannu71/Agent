@@ -40,6 +40,32 @@ double bootstrap_drawdown_p95(const std::vector<double>& returns, int sims, int 
 // Trades needed for t = 3 at mean `mu` and standard deviation `sd` (in R).
 double trades_needed(double mu, double sd, double t = 3.0);
 
+// ---------------------------------------------------------------- trial log
+
+// Every configuration run on a sleeve is a trial for the deflated Sharpe ratio and PBO,
+// including ones that were looked at and discarded. The log is append-only; a trial is
+// identified by a hash of its exact settings, so re-running the same configuration does
+// not count twice.
+struct TrialRecord {
+    std::string sleeve;
+    std::string id;     // settings hash
+    std::string label;  // human-readable description
+    EquityCurve curve;  // date, equity
+};
+
+// Appends the trial unless one with the same sleeve and id is already logged. Returns
+// true if it was added.
+bool log_trial(const std::string& path, const TrialRecord& t);
+std::vector<TrialRecord> load_trials(const std::string& path, const std::string& sleeve);
+
+struct TrialStats {
+    int n = 0;             // trials on this sleeve
+    double var_sharpe = 0; // variance of their non-annualised Sharpe ratios
+    double pbo = 0;        // CSCV over the dates common to every trial (NaN if too few)
+    std::size_t common_periods = 0;
+};
+TrialStats trial_stats(const std::vector<TrialRecord>& trials, int splits = 16);
+
 struct GateLine {
     std::string name;
     double value = 0;

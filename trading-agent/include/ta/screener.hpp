@@ -19,6 +19,7 @@ struct ScreenConfig {
     std::size_t base_len = 20;         // base window (rulebook allows 10-40 bars)
     double max_tightness = 0.5;        // 5-day range <= 0.5 x base range
     double max_below_pivot = 0.15;     // close within 15% below the base high
+    std::size_t mom_skip_days = 0;     // 21 = classic 12-1 momentum (skip the latest month)
 };
 
 struct Candidate {

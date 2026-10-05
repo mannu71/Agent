@@ -64,6 +64,16 @@ double atr_frac(const Series& s, std::size_t i, std::size_t n) {
     return sum / static_cast<double>(n);
 }
 
+double atr(const Series& s, std::size_t i, std::size_t n) {
+    if (i >= s.size() || i < n || n == 0) return kNaN;
+    double sum = 0;
+    for (std::size_t k = i + 1 - n; k <= i; ++k) {
+        const double pc = s[k - 1].close;
+        sum += std::max({s[k].high - s[k].low, std::fabs(s[k].high - pc), std::fabs(s[k].low - pc)});
+    }
+    return sum / static_cast<double>(n);
+}
+
 double sma_volume(const Series& s, std::size_t i, std::size_t n) {
     if (!has_window(s, i, n)) return kNaN;
     double sum = 0;

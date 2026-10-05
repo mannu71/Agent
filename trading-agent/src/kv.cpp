@@ -136,6 +136,15 @@ void config_set(const Config& c, const std::string& key, int& field) {
 void config_set(const Config& c, const std::string& key, std::size_t& field) {
     if (const auto it = c.find(key); it != c.end()) field = std::stoul(it->second);
 }
+void config_set(const Config& c, const std::string& key, bool& field) {
+    if (const auto it = c.find(key); it != c.end()) {
+        const std::string& v = it->second;
+        if (v == "1" || v == "true" || v == "yes" || v == "on") field = true;
+        else if (v == "0" || v == "false" || v == "no" || v == "off") field = false;
+        else throw std::runtime_error("expected a boolean for " + key + ", got " + v);
+    }
+}
+
 void config_set(const Config& c, const std::string& key, std::string& field) {
     if (const auto it = c.find(key); it != c.end()) field = it->second;
 }

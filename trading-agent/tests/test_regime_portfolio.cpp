@@ -58,12 +58,41 @@ TEST(crowding_gate_rules) {
     CHECK(ta::crowding_gate(0.35, nan, nan, cfg) == ta::Gate::Red);
 }
 
-TEST(event_calendar_blackout_window) {
+TEST(event_calendar_calendar_day_window) {
     ta::EventCalendar cal;
     cal.add("2026-02-01", "budget");
-    CHECK(cal.blackout("2026-01-31", 1, 1));
-    CHECK(cal.blackout("2026-02-02", 1, 1));
-    CHECK(!cal.blackout("2026-02-03", 1, 1));
+    ta::RegimeConfig cfg;
+    cfg.event_trading_days = false;
+    CHECK(cal.blackout("2026-01-31", cfg));
+    CHECK(cal.blackout("2026-02-02", cfg));
+    CHECK(!cal.blackout("2026-02-03", cfg));
+}
+
+TEST(event_blackout_counts_trading_sessions) {
+    // 2009 election result on Saturday 16 May; the +17.7% session was Monday 18 May.
+    const std::vector<std::string> sessions = {"2009-05-11", "2009-05-12", "2009-05-13", "2009-05-14",
+                                               "2009-05-15", "2009-05-18", "2009-05-19", "2009-05-20",
+                                               "2009-05-21", "2009-05-22", "2009-05-25"};
+    ta::EventCalendar cal;
+    cal.add("2009-05-16", "General election result");
+    ta::RegimeConfig cfg;  // election window: 5 sessions before, 3 after
+    CHECK(cal.blackout("2009-05-18", cfg, &sessions));  // Monday is blocked
+    CHECK(cal.blackout("2009-05-11", cfg, &sessions));  // 5 sessions before
+    CHECK(cal.blackout("2009-05-21", cfg, &sessions));  // 3 sessions after
+    CHECK(!cal.blackout("2009-05-22", cfg, &sessions));
+
+    ta::EventCalendar rbi;
+    rbi.add("2009-05-13", "RBI policy");  // 0 before, 1 after
+    CHECK(!rbi.blackout("2009-05-12", cfg, &sessions));
+    CHECK(rbi.blackout("2009-05-13", cfg, &sessions));
+    CHECK(rbi.blackout("2009-05-14", cfg, &sessions));
+    CHECK(!rbi.blackout("2009-05-15", cfg, &sessions));
+
+    // Calendar-day counting (the old behaviour) would leave Monday open after a Saturday event.
+    ta::RegimeConfig cal_days;
+    cal_days.event_trading_days = false;
+    cal_days.event_after_by_tag["election"] = 1;
+    CHECK(!cal.blackout("2009-05-18", cal_days, &sessions));
 }
 
 TEST(equity_regime_actions) {
@@ -86,4 +115,64 @@ TEST(allocation_validation_and_scaling) {
     CHECK(!a.validate().empty());  // A1 + A2 = 15% > 13%
     // 0.40% of E_A for a sleeve holding 40% of E_A is 1% of the sleeve.
     CHECK_NEAR(ta::to_sleeve_fraction(0.004, 250000, 100000), 0.01, 1e-12);
+}
+
+TEST(crash_gate_daniel_moskowitz_state) {
+    // Two years drifting down with variance falling over time (current variance below its
+    // median): green. Then a volatile stretch in the same bear market: red, without the
+    // fast rebound trigger.
+    ta::Series s;
+    double c = 1000;
+    for (int k = 0; k < 600; ++k) {
+        const double amp = k < 300 ? 0.010 : 0.002;
+        c *= (k % 2 ? 1.0 + amp : 1.0 - amp) * 0.9995;
+        s.push_back({th::iso_day(k), c, c, c, c, 1});
+    }
+    CHECK(ta::crash_gate(s, s.size() - 1, ta::RegimeConfig{}) == ta::Gate::Green);
+    for (int k = 600; k < 640; ++k) {
+        c *= k % 2 ? 1.03 : 0.97;
+        s.push_back({th::iso_day(k), c, c, c, c, 1});
+    }
+    CHECK(ta::crash_gate(s, s.size() - 1, ta::RegimeConfig{}) == ta::Gate::Red);
+}
+
+#include "ta/settings.hpp"
+
+TEST(settings_new_keys_apply_and_typos_rejected) {
+    ta::Config c = {{"a1.runner_trail", "atr"},
+                    {"a1.partial_frac", "0"},
+                    {"a1.vol_scale", "false"},
+                    {"regime.event_days_before.election", "7"},
+                    {"regime.event_days_after.fomc", "0"},
+                    {"regime.crash_vol_pct", "0.6"}};
+    ta::check_settings_keys(c);
+    ta::A1Config a1;
+    ta::apply_settings(c, a1);
+    CHECK(a1.exits.runner_atr);
+    CHECK(a1.exits.partial_frac == 0);
+    CHECK(!a1.vol_scale);
+    CHECK(a1.regime.event_before_by_tag.at("election") == 7);
+    CHECK(a1.regime.event_after_by_tag.at("fomc") == 0);
+    CHECK_NEAR(a1.regime.crash_vol_pct, 0.6, 1e-12);
+    CHECK(a1.exits.max_hold_days == 250);
+
+    bool threw = false;
+    try {
+        ta::check_settings_keys({{"a1.runner_trial", "atr"}});
+    } catch (const std::exception&) {
+        threw = true;
+    }
+    CHECK(threw);
+    threw = false;
+    try {
+        ta::A1Config x;
+        ta::apply_settings({{"a1.runner_trail", "ema"}}, x);
+    } catch (const std::exception&) {
+        threw = true;
+    }
+    CHECK(threw);
+    // Every default key round-trips through the checker.
+    ta::Config defaults;
+    for (const auto& [k, v] : ta::default_settings()) defaults[k] = v;
+    ta::check_settings_keys(defaults);
 }

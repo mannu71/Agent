@@ -159,3 +159,52 @@ TEST(crypto_risk_off_goes_flat) {
     CHECK(eng.risk().state() == ta::RiskState::Off);
     CHECK(eng.exposure("BTC") == 0);
 }
+
+TEST(crypto_exit_tests_yesterdays_stop) {
+    // Lookback 5: long at the close of 90 with stop = mid 70. Next day the 50 drops out
+    // of the window, lifting today's mid to 75; a close of 75 is above yesterday's stop
+    // (70), so the paper stays long. Ratcheting before the test would exit a day early.
+    ta::Series s;
+    for (int k = 0; k < 95; ++k) {
+        const double c = k % 2 ? 102 : 100;
+        s.push_back({th::iso_day(k), c, c, c, c, 1});
+    }
+    int k = 95;
+    for (double c : {50.0, 60.0, 70.0, 80.0, 90.0, 75.0}) {
+        s.push_back({th::iso_day(k), c, c, c, c, 1});
+        ++k;
+    }
+    ta::CryptoTrendConfig cfg;
+    cfg.lookbacks = {5};
+    const ta::MarketData md({{"BTC", s}});
+    ta::CryptoTrendEngine eng(md, cfg, {}, 1e6);
+    for (const auto& d : md.dates()) eng.step(d);
+    CHECK(eng.exposure("BTC") > 0);
+}
+
+TEST(crypto_defaults_and_replication_mode) {
+    const ta::CryptoTrendConfig def;
+    CHECK_NEAR(def.cost_bps, 25, 1e-12);
+    CHECK_NEAR(def.funding_annual_default, 0.10, 1e-12);
+    CHECK_NEAR(def.risk.drawdown_halve, 0.20, 1e-12);
+    CHECK_NEAR(def.risk.drawdown_off, 0.30, 1e-12);
+
+    // In replication mode a deep drawdown never switches the sleeve off.
+    ta::Series s;
+    double c = 100;
+    for (int k = 0; k < 200; ++k) {
+        c *= (k < 120 ? (k % 2 ? 1.01 : 0.99) : 1.02);
+        s.push_back({th::iso_day(k), c, c, c, c, 1});
+    }
+    for (int k = 200; k < 203; ++k) {
+        c *= 0.80;
+        s.push_back({th::iso_day(k), c, c, c, c, 1});
+    }
+    const ta::MarketData md({{"BTC", s}});
+    ta::CryptoTrendConfig rep;
+    rep.lookbacks = {150};
+    rep.replication_mode();
+    const auto r = ta::run_crypto_backtest(md, rep, {}, 1e6);
+    CHECK(r.final_risk_state != ta::RiskState::Off);
+    CHECK(r.tax_paid == 0 && r.funding_paid == 0);
+}

@@ -129,7 +129,7 @@ struct PaperAccount::Impl {
 
     // Data. Engines keep references, so these must outlive them.
     std::unique_ptr<MarketData> equity_md, crypto_md;
-    Series index, nifty_fut;
+    Series index, nifty_fut, nifty_spot;
     std::map<std::string, double> vix;
     EventCalendar events;
     bool has_events = false;
@@ -186,9 +186,7 @@ struct PaperAccount::Impl {
             A1Config c1;
             apply_settings(cfg, c1);
             // Rulebook units are fractions of the active book; convert to this sleeve's capital.
-            c1.risk.risk_per_trade = to_sleeve_fraction(c1.risk.risk_per_trade, active_book, a1_cap);
-            c1.risk.max_position_frac = to_sleeve_fraction(c1.risk.max_position_frac, active_book, a1_cap);
-            c1.risk.daily_loss_limit = to_sleeve_fraction(c1.risk.daily_loss_limit, active_book, a1_cap);
+            to_sleeve_units(c1.risk, active_book, a1_cap);
             EquityRegimeInputs reg;
             reg.index = index.empty() ? nullptr : &index;
             reg.vix = vix.empty() ? nullptr : &vix;
@@ -201,9 +199,7 @@ struct PaperAccount::Impl {
                 intraday.finalize();
                 A2Config c2;
                 apply_settings(cfg, c2);
-                c2.risk.risk_per_trade = to_sleeve_fraction(c2.risk.risk_per_trade, active_book, a2_cap);
-                c2.risk.max_position_frac = to_sleeve_fraction(c2.risk.max_position_frac, active_book, a2_cap);
-                c2.risk.daily_loss_limit = to_sleeve_fraction(c2.risk.daily_loss_limit, active_book, a2_cap);
+                to_sleeve_units(c2.risk, active_book, a2_cap);
                 A2Inputs in;
                 in.intraday = &intraday;
                 in.excluded = excluded;
@@ -241,7 +237,8 @@ struct PaperAccount::Impl {
             if (!str_or(cfg, "data.d1_skip_days").empty()) {
                 for (const auto& d : load_symbol_list(str_or(cfg, "data.d1_skip_days"))) cd.skip_days.insert(d);
             }
-            d1 = std::make_unique<D1Engine>(nifty_fut, cd, d1_cap);
+            if (!str_or(cfg, "data.nifty_spot").empty()) nifty_spot = load_series(str_or(cfg, "data.nifty_spot"));
+            d1 = std::make_unique<D1Engine>(nifty_fut, cd, d1_cap, nifty_spot.empty() ? nullptr : &nifty_spot);
         }
 
         // Restore state.
@@ -319,7 +316,8 @@ void PaperAccount::init(const std::string& dir, double capital, const std::strin
         << "account.start = " << start << "\n\n# data paths (empty = sleeve disabled)\n";
     for (const char* k : {"data.equity_dir", "data.exclusions", "data.index", "data.vix", "data.events",
                           "data.intraday_dir", "data.catalysts", "data.bands", "data.crypto_dir",
-                          "data.crypto_funding_dir", "data.crypto_oi_dir", "data.nifty_fut", "data.d1_skip_days"}) {
+                          "data.crypto_funding_dir", "data.crypto_oi_dir", "data.nifty_fut", "data.nifty_spot",
+                          "data.d1_skip_days"}) {
         const auto it = settings.find(k);
         out << k << " = " << (it == settings.end() ? "" : it->second) << "\n";
     }
@@ -334,7 +332,7 @@ void PaperAccount::init(const std::string& dir, double capital, const std::strin
         const auto rb = rulebook.find(k);
         out << k << " = " << (it != settings.end() ? it->second : rb != rulebook.end() ? rb->second : v) << "\n";
     }
-    out << "\n# kill rules\nkill.b_backtest_max_dd = 0.19\nkill.ic_target = 0.03\n";
+    out << "\n# kill rules\nkill.b_backtest_max_dd = 0.20\nkill.ic_target = 0.03\n";
     for (const auto& [k, v] : settings) {
         if (k.rfind("paper.", 0) == 0) out << k << " = " << v << "\n";
     }
@@ -411,7 +409,7 @@ std::string PaperAccount::run(const std::string& until) {
         }
         if (p.b) {
             apply("B", &p.b->risk(),
-                  b_kill_rule(p.b->risk().drawdown(), num_or(p.cfg, "kill.b_backtest_max_dd", 0.19)), date);
+                  b_kill_rule(p.b->risk().drawdown(), num_or(p.cfg, "kill.b_backtest_max_dd", 0.20)), date);
         }
         if (p.d1) apply("D1", &p.d1->risk(), d1_kill_rule(of_sleeve(history, "D1", since("d1"))), date);
     };
@@ -618,6 +616,26 @@ std::string PaperAccount::scorecard(std::size_t horizon, std::size_t top_k) cons
         cusum.update(d.rank_ic);
         prec += d.precision_at_k;
         base += d.base_rate;
+    }
+    // Whole-history view: mean rank IC with its t-statistic and the top-k edge over the base
+    // rate, overall and by year (non-overlapping caveat: with horizon h > 1 daily ICs overlap,
+    // so the plain t overstates significance by roughly sqrt(h)).
+    {
+        std::map<std::string, std::vector<double>> ic_by_year, edge_by_year;
+        std::vector<double> ics, edges;
+        for (const auto& d : days) {
+            ics.push_back(d.rank_ic);
+            edges.push_back(d.precision_at_k - d.base_rate);
+            ic_by_year[d.date.substr(0, 4)].push_back(d.rank_ic);
+            edge_by_year[d.date.substr(0, 4)].push_back(d.precision_at_k - d.base_rate);
+        }
+        o << "all days: mean rank IC " << mean(ics) << " (t " << t_stat(ics) << ", overlap-adjusted t "
+          << t_stat(ics) / std::sqrt(static_cast<double>(horizon)) << "); top-" << top_k
+          << " hit rate minus base rate " << mean(edges) << "\n";
+        for (const auto& [y, v] : ic_by_year) {
+            o << "  " << y << ": IC " << mean(v) << "  top-k edge " << mean(edge_by_year[y]) << "  (" << v.size()
+              << " days)\n";
+        }
     }
     const double ic60 = rolling_mean_ic(days, 60);
     o << "rank IC  20d " << rolling_mean_ic(days, 20) << "  60d " << ic60 << "  120d " << rolling_mean_ic(days, 120)

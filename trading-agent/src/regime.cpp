@@ -1,6 +1,7 @@
 #include "ta/regime.hpp"
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <fstream>
 #include <sstream>
@@ -68,11 +69,31 @@ Gate vix_gate(const std::map<std::string, double>& vix, const std::string& date,
 }
 
 Gate crash_gate(const Series& index, std::size_t i, const RegimeConfig& cfg) {
-    // A sharp fall followed by a sharp rebound: the state in which momentum crashes.
-    if (i < 63) return Gate::Unknown;
+    if (i < 63 || i >= index.size()) return Gate::Unknown;
+    // Fast trigger: a sharp fall followed by a sharp rebound.
     const double fall = std::min(ret(index, i, 63), ret(index, i - 21, 42));
-    const double rebound = ret(index, i, 21);
-    return fall <= cfg.crash_fall && rebound >= cfg.crash_rebound ? Gate::Red : Gate::Green;
+    const bool fast = fall <= cfg.crash_fall && ret(index, i, 21) >= cfg.crash_rebound;
+
+    // Daniel & Moskowitz bear state with high variance. Rolling variances come from prefix
+    // sums of daily log returns so the whole history costs O(i).
+    bool dm = false;
+    const std::size_t n = cfg.crash_vol_n;
+    if (n >= 2 && i >= cfg.crash_bear_lookback && i > n && ret(index, i, cfg.crash_bear_lookback) < 0) {
+        std::vector<double> s1(i + 1, 0.0), s2(i + 1, 0.0);
+        for (std::size_t k = 1; k <= i; ++k) {
+            const double r = std::log(index[k].close / index[k - 1].close);
+            s1[k] = s1[k - 1] + r;
+            s2[k] = s2[k - 1] + r * r;
+        }
+        auto var_at = [&](std::size_t k) {  // variance of the n returns ending at bar k
+            const double a = s1[k] - s1[k - n], b = s2[k] - s2[k - n];
+            return (b - a * a / static_cast<double>(n)) / static_cast<double>(n - 1);
+        };
+        std::vector<double> hist;
+        for (std::size_t k = n; k < i; ++k) hist.push_back(var_at(k));
+        dm = !hist.empty() && percentile_rank(hist, var_at(i)) > cfg.crash_vol_pct;
+    }
+    return fast || dm ? Gate::Red : Gate::Green;
 }
 
 Gate crowding_gate(double funding_annualized, double oi_now, double oi_prev, const RegimeConfig& cfg) {
@@ -98,11 +119,29 @@ EventCalendar EventCalendar::load(const std::string& path) {
     return c;
 }
 
-bool EventCalendar::blackout(const std::string& date, int days_before, int days_after) const {
-    const long d = days_from_iso(date);
+bool EventCalendar::blackout(const std::string& date, const RegimeConfig& cfg,
+                             const std::vector<std::string>* sessions) const {
+    auto window = [&](const std::set<std::string>& tags, bool before) {
+        int w = before ? cfg.event_days_before : cfg.event_days_after;
+        bool matched = false;
+        for (std::string tag : tags) {
+            for (auto& c : tag) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+            const auto& by_tag = before ? cfg.event_before_by_tag : cfg.event_after_by_tag;
+            for (const auto& [key, days] : by_tag) {
+                if (tag.find(key) == std::string::npos) continue;
+                w = matched ? std::max(w, days) : days;  // widest matching window wins
+                matched = true;
+            }
+        }
+        return w;
+    };
+    const bool by_session = cfg.event_trading_days && sessions && !sessions->empty();
+    const long d = by_session ? std::lower_bound(sessions->begin(), sessions->end(), date) - sessions->begin()
+                              : days_from_iso(date);
     for (const auto& [ev, tags] : events_) {
-        const long e = days_from_iso(ev);
-        if (d >= e - days_before && d <= e + days_after) return true;
+        const long e = by_session ? std::lower_bound(sessions->begin(), sessions->end(), ev) - sessions->begin()
+                                  : days_from_iso(ev);
+        if (d >= e - window(tags, true) && d <= e + window(tags, false)) return true;
     }
     return false;
 }
@@ -122,7 +161,7 @@ EquityRegime evaluate_equity_regime(const EquityRegimeInputs& in, const std::str
         }
     }
     if (in.vix) r.vol = vix_gate(*in.vix, date, cfg);
-    if (in.events) r.event_blackout = in.events->blackout(date, cfg.event_days_before, cfg.event_days_after);
+    if (in.events) r.event_blackout = in.events->blackout(date, cfg, in.sessions);
     return r;
 }
 

@@ -20,11 +20,21 @@ struct RegimeConfig {
     std::size_t vol_lookback = 250;  // percentile window for volatility
     double vol_red_pct = 0.80;       // red when today's vol is in the top 20% of its own year
     std::size_t realized_vol_n = 30; // realised-vol window when no VIX series is given
-    double crash_fall = -0.15;       // momentum-crash state: 63-day return <= -15% ...
+    double crash_fall = -0.15;       // fast trigger: 63-day return <= -15% ...
     double crash_rebound = 0.10;     // ... and 21-day return >= +10% (panic rebound)
+    // Daniel & Moskowitz ex-ante danger state: market down over ~2 years AND daily-return
+    // variance over the last 126 days above its own historical median. Red if either holds.
+    std::size_t crash_bear_lookback = 504;
+    std::size_t crash_vol_n = 126;
+    double crash_vol_pct = 0.5;
     double funding_red_annual = 0.30;  // perp funding above 30%/yr with rising OI
-    int event_days_before = 1;       // calendar days of blackout around scheduled events
+    int event_days_before = 1;       // default blackout around scheduled events
     int event_days_after = 1;
+    bool event_trading_days = true;  // count trading sessions (a Saturday event blocks Monday)
+    // Per-event-type windows, matched when the event's tag contains the key
+    // (case-insensitive). Elections move markets for days; RBI policy only on the day.
+    std::map<std::string, int> event_before_by_tag = {{"election", 5}, {"budget", 1}, {"rbi", 0}};
+    std::map<std::string, int> event_after_by_tag = {{"election", 3}, {"budget", 1}, {"rbi", 1}};
 };
 
 // Days since 1970-01-01 for an ISO date "YYYY-MM-DD".
@@ -49,7 +59,11 @@ class EventCalendar {
 public:
     static EventCalendar load(const std::string& path);  // "date,tag" lines
     void add(const std::string& date, const std::string& tag) { events_[date].insert(tag); }
-    bool blackout(const std::string& date, int days_before, int days_after) const;
+    // True when `date` falls inside any event's window. With `sessions` (the sorted trading
+    // calendar) and cfg.event_trading_days, windows count sessions: an event on a
+    // non-trading day is anchored to the next session. Otherwise windows count calendar days.
+    bool blackout(const std::string& date, const RegimeConfig& cfg,
+                  const std::vector<std::string>* sessions = nullptr) const;
 
 private:
     std::map<std::string, std::set<std::string>> events_;
@@ -73,6 +87,7 @@ struct EquityRegimeInputs {
     const Series* index = nullptr;                   // e.g. Nifty 50 daily
     const std::map<std::string, double>* vix = nullptr;  // India VIX close
     const EventCalendar* events = nullptr;
+    const std::vector<std::string>* sessions = nullptr;  // trading calendar for blackouts
 };
 
 // Missing inputs leave that gate Unknown, which does not block trading.

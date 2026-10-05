@@ -2,11 +2,13 @@
 
 #include <algorithm>
 #include <cmath>
+#include <fstream>
 #include <limits>
 #include <map>
 #include <numeric>
 #include <random>
 #include <sstream>
+#include <stdexcept>
 
 namespace ta {
 
@@ -216,6 +218,70 @@ double bootstrap_drawdown_p95(const std::vector<double>& returns, int sims, int 
 double trades_needed(double mu, double sd, double t) {
     if (mu == 0) return std::numeric_limits<double>::infinity();
     return std::pow(t * sd / mu, 2);
+}
+
+bool log_trial(const std::string& path, const TrialRecord& t) {
+    for (const auto& existing : load_trials(path, t.sleeve)) {
+        if (existing.id == t.id) return false;
+    }
+    std::string dates, equity;
+    for (const auto& [d, e] : t.curve) {
+        dates += (dates.empty() ? "" : ";") + d;
+        equity += (equity.empty() ? "" : ";") + fmt_double(e);
+    }
+    KvRecord r;
+    r.type = "trial";
+    r.set("sleeve", t.sleeve).set("id", t.id).set("label", t.label).set("dates", dates).set("equity", equity);
+    std::ofstream out(path, std::ios::app);
+    if (!out) throw std::runtime_error("cannot append to trial log " + path);
+    out << r.encode() << '\n';
+    return true;
+}
+
+std::vector<TrialRecord> load_trials(const std::string& path, const std::string& sleeve) {
+    std::vector<TrialRecord> out;
+    std::ifstream in(path);
+    std::string line;
+    while (std::getline(in, line)) {
+        if (line.empty()) continue;
+        const KvRecord r = KvRecord::parse(line);
+        if (r.type != "trial" || r.str("sleeve") != sleeve) continue;
+        TrialRecord t{r.str("sleeve"), r.str("id"), r.str("label"), {}};
+        std::stringstream ds(r.str("dates")), es(r.str("equity"));
+        std::string d, e;
+        while (std::getline(ds, d, ';') && std::getline(es, e, ';')) t.curve.emplace_back(d, std::stod(e));
+        out.push_back(std::move(t));
+    }
+    return out;
+}
+
+TrialStats trial_stats(const std::vector<TrialRecord>& trials, int splits) {
+    TrialStats st;
+    st.n = static_cast<int>(trials.size());
+    std::vector<double> srs;
+    for (const auto& t : trials) {
+        const auto r = periodic_returns(t.curve);
+        const double sd = stdev(r);
+        srs.push_back(sd > 0 ? mean(r) / sd : 0);
+    }
+    st.var_sharpe = srs.size() >= 2 ? std::pow(stdev(srs), 2) : 0;
+
+    // Returns on the dates every trial shares (date of the later observation).
+    std::map<std::string, std::vector<double>> by_date;
+    for (std::size_t j = 0; j < trials.size(); ++j) {
+        const auto& c = trials[j].curve;
+        for (std::size_t k = 1; k < c.size(); ++k) {
+            auto& row = by_date[c[k].first];
+            if (row.size() == j) row.push_back(c[k].second / c[k - 1].second - 1.0);
+        }
+    }
+    std::vector<std::vector<double>> perf;
+    for (const auto& [d, row] : by_date) {
+        if (row.size() == trials.size()) perf.push_back(row);
+    }
+    st.common_periods = perf.size();
+    st.pbo = trials.size() >= 2 ? pbo_cscv(perf, splits) : std::numeric_limits<double>::quiet_NaN();
+    return st;
 }
 
 bool GateReport::pass() const {

@@ -22,6 +22,12 @@ double to_sleeve_fraction(double fraction_of_active_book, double active_book, do
     return fraction_of_active_book * active_book / sleeve_capital;
 }
 
+void to_sleeve_units(RiskConfig& r, double active_book, double sleeve_capital) {
+    r.risk_per_trade = to_sleeve_fraction(r.risk_per_trade, active_book, sleeve_capital);
+    r.max_position_frac = to_sleeve_fraction(r.max_position_frac, active_book, sleeve_capital);
+    r.daily_loss_limit = to_sleeve_fraction(r.daily_loss_limit, active_book, sleeve_capital);
+}
+
 RiskConfig active_book_breaker_config() {
     RiskConfig c;
     c.drawdown_halve = 0.10;

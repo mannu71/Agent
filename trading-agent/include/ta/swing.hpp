@@ -14,13 +14,22 @@ namespace ta {
 // "day 3" is the third close after it.
 struct ExitRules {
     int partial_day = 3;             // sell partial at this close if in profit, stop -> entry
-    double partial_frac = 1.0 / 3.0;
+    double partial_frac = 1.0 / 3.0; // 0 (or partial_day <= 0) switches the partial off
     int time_stop_day = 20;          // exit at this close if below +time_stop_min_r; 0 disables
     double time_stop_min_r = 1.0;
-    int max_hold_days = 120;         // forced exit at this close
+    int max_hold_days = 250;         // forced exit at this close (winners in trend studies run ~370 days)
     std::size_t trail_fast = 10;     // trail on SMA(trail_fast) when ADR >= fast_trail_min_adr
     std::size_t trail_slow = 20;     // ... else on SMA(trail_slow)
     double fast_trail_min_adr = 0.05;
+    // Runner variant: after the partial (or from entry when the partial is off), trail the
+    // remainder with a ratcheting stop at the highest close minus k x ATR(n) instead of the
+    // SMA (Zarattini, Pagani & Wilcox use 10 x ATR(42)).
+    bool runner_atr = false;
+    std::size_t runner_atr_n = 42;
+    double runner_atr_k = 10;
+    // Profit targets as (R multiple, fraction of the initial size), filled on daily bars
+    // from the day after entry: at the open if it gaps through, else at the target price.
+    std::vector<std::pair<double, double>> r_targets;
 };
 
 struct SwingPosition {
@@ -32,6 +41,8 @@ struct SwingPosition {
     int days_held = 0;
     bool partial_done = false;
     bool exit_next_open = false;
+    double high_close = 0;  // highest close since entry, for the ATR runner trail
+    int targets_done = 0;   // profit targets already filled
 
     KvRecord to_kv() const;
     static SwingPosition from_kv(const KvRecord& r);

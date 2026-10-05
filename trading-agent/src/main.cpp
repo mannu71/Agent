@@ -12,6 +12,7 @@
 #include "ta/crypto_trend.hpp"
 #include "ta/csv.hpp"
 #include "ta/d1.hpp"
+#include "ta/journal.hpp"
 #include "ta/options.hpp"
 #include "ta/regime.hpp"
 #include "ta/settings.hpp"
@@ -28,12 +29,15 @@ const char* kUsage = R"(usage: ta_backtest <sleeve> ... [options]
        --gate      run the 2x-cost rerun and a 9-trial grid; print the gate-1 report
   a2 <equity_dir> --intraday DIR --catalysts F --bands F
                     episodic-pivot gaps; prints the approved-vs-rejected uplift
-  b  <crypto_dir> [--funding-dir DIR] [--cost-bps 10] [--tax 0.312]
-                    crypto Donchian ensemble; prints entries per lookback
-  d1 <nifty_fut_5min.csv> [--cost-points 19] [--skip-days F]
-                    Nifty last-half-hour momentum
+  b  <crypto_dir> [--funding-dir DIR] [--cost-bps 25] [--tax 0.312] [--replicate]
+                    crypto Donchian ensemble; prints entries per lookback. --replicate runs
+                    the paper's setup (10 bps, no funding/tax/overlay) for the reproduce-first check
+  d1 <nifty_fut_5min.csv> [--spot F] [--cost-frac 0.0006] [--slippage-points 3] [--skip-days F]
+                    Nifty last-half-hour momentum; --spot takes the signal from the spot index
   options --legs "P:22000:-1:85,P:21800:1:40,..." --expiry YYYY-MM-DD --today YYYY-MM-DD
           --active-book N [--existing N] [--vol-red] [--blackout] [--lot 65]
+  a1 also takes --trial-log FILE [--label TEXT]: every configuration run is appended
+     (deduplicated by a hash of its settings) and --gate counts all logged trials
                     validate and size a defined-risk structure (Sleeve C)
 
 common: --equity N  --start YYYY-MM-DD  --end YYYY-MM-DD  --config F (key = value overrides)
@@ -68,10 +72,26 @@ ta::Config config_of(const cli::Args& a) {
     return c;
 }
 
+// Risk keys are written in active-book units (the rulebook's). Convert them exactly as
+// the paper runner does, treating --equity as this sleeve's capital, so a backtest
+// validates the same risk that is paper-traded.
+void sleeve_units(const ta::Config& c, ta::RiskConfig& r, double sleeve_capital, bool is_a2) {
+    ta::Allocation alloc;
+    ta::apply_settings(c, alloc);
+    const double share = is_a2 ? (alloc.a2 > 0 ? alloc.a2 : alloc.reserve) : alloc.a1;
+    if (share <= 0) throw std::runtime_error("allocation share for this sleeve is zero");
+    const double active_book = sleeve_capital * alloc.active_share() / share;
+    ta::to_sleeve_units(r, active_book, sleeve_capital);
+    std::cout << "risk units     active book " << std::fixed << std::setprecision(0) << active_book
+              << " -> " << std::setprecision(4) << r.risk_per_trade * 100 << "% of sleeve per trade\n";
+}
+
 int run_a1(const cli::Args& a) {
     const ta::MarketData md(ta::load_universe(a.pos(1)));
+    const ta::Config conf = config_of(a);
     ta::A1Config cfg;
-    ta::apply_settings(config_of(a), cfg);
+    ta::apply_settings(conf, cfg);
+    sleeve_units(conf, cfg.risk, a.num("equity", 1e6), false);
     if (a.has("cost-rt")) cfg.cost.buy_frac = cfg.cost.sell_frac = a.num("cost-rt", 0.005) / 2;
     const ta::ExclusionList excl = a.has("exclude") ? ta::ExclusionList::load(a.str("exclude")) : ta::ExclusionList{};
     ta::Series index;
@@ -89,35 +109,69 @@ int run_a1(const cli::Args& a) {
               << cfg.cost.round_trip() * 100 << "% round trip)\n";
     write_outputs(a, r.trades, r.equity_curve);
 
+    // Fingerprint of everything that determines this run, so the trial log can tell a new
+    // configuration from a rerun of an old one.
+    // Every effective setting is included with numbers normalised, so the same configuration
+    // hashes the same whether a value came from a default, a config file or the grid.
+    auto fingerprint = [&](const ta::Config& c) {
+        std::string f = "a1|" + a.pos(1);
+        for (const char* k : {"start", "end", "equity", "cost-rt", "exclude", "index", "vix", "events"}) {
+            f += std::string("|") + k + "=" + a.str(k);
+        }
+        for (const auto& [k, def] : ta::default_settings()) {
+            const auto it = c.find(k);
+            std::string v = it == c.end() ? def : it->second;
+            try {
+                std::size_t used = 0;
+                const double x = std::stod(v, &used);
+                if (used == v.size()) v = ta::fmt_double(x);
+            } catch (const std::exception&) {
+            }
+            f += "|" + k + "=" + v;
+        }
+        return f;
+    };
+    const std::string fp = fingerprint(conf);
+    const std::string log = a.str("trial-log");
+    if (!log.empty()) {
+        const bool added = ta::log_trial(log, {"A1", ta::sha256_hex(fp), a.str("label", "run"), r.equity_curve});
+        std::cout << (added ? "trial logged" : "trial already in log (same settings)") << " -> " << log << '\n';
+    }
+
     if (a.has("gate")) {
         ta::A1Config stress = cfg;
         stress.cost.buy_frac *= 2;
         stress.cost.sell_frac *= 2;
         const auto r2 = ta::run_a1_backtest(md, stress, excl, equity, a.str("start"), a.str("end"), reg);
-        // Every grid point counts as a trial for the deflated Sharpe ratio and PBO.
-        std::vector<std::vector<double>> perf;
-        std::vector<double> trial_sr;
+        // Every grid point is a trial for the deflated Sharpe ratio and PBO.
+        std::vector<ta::TrialRecord> grid;
         for (double runup : {0.25, 0.30, 0.40}) {
             for (double adr : {0.03, 0.04, 0.05}) {
                 ta::A1Config g = cfg;
                 g.screen.min_runup = runup;
                 g.screen.min_adr = adr;
                 const auto rg = ta::run_a1_backtest(md, g, excl, equity, a.str("start"), a.str("end"), reg);
-                const auto ret = ta::periodic_returns(rg.equity_curve);
-                if (perf.empty()) perf.assign(ret.size(), {});
-                for (std::size_t t = 0; t < ret.size() && t < perf.size(); ++t) perf[t].push_back(ret[t]);
-                const double sd = ta::stdev(ret);
-                trial_sr.push_back(sd > 0 ? ta::mean(ret) / sd : 0);
+                ta::Config gc = conf;
+                gc["a1.min_runup"] = ta::fmt_double(runup);
+                gc["a1.min_adr"] = ta::fmt_double(adr);
+                const std::string tag = "grid runup=" + ta::fmt_double(runup) + " adr=" + ta::fmt_double(adr);
+                grid.push_back({"A1", ta::sha256_hex(fingerprint(gc)), tag, rg.equity_curve});
             }
         }
-        const double var_sr = std::pow(ta::stdev(trial_sr), 2);
-        const double pbo = ta::pbo_cscv(perf, 16);
-        const auto rep = ta::evaluate_gate1(r.trades, r.equity_curve, r2.trades,
-                                            static_cast<int>(trial_sr.size()), var_sr, pbo);
+        std::vector<ta::TrialRecord> trials = grid;
+        if (!log.empty()) {
+            for (const auto& t : grid) ta::log_trial(log, t);
+            trials = ta::load_trials(log, "A1");
+        } else {
+            std::cout << "warning: no --trial-log, so N counts only the 9 grid points; every other\n"
+                         "configuration you have tried is missing from the deflated Sharpe and PBO.\n";
+        }
+        const ta::TrialStats st = ta::trial_stats(trials, 16);
+        const auto rep = ta::evaluate_gate1(r.trades, r.equity_curve, r2.trades, st.n, st.var_sharpe, st.pbo);
         const auto rets = ta::periodic_returns(r.equity_curve);
-        std::cout << "\n--- gate 1 (" << trial_sr.size() << " trials) ---\n" << rep.text()
-                  << "bootstrap 95th-pct drawdown " << ta::bootstrap_drawdown_p95(rets, 500, 20, 7) << "\n"
-                  << "trades needed for t=3 at this edge "
+        std::cout << "\n--- gate 1 (" << st.n << " trials, " << st.common_periods << " common periods) ---\n"
+                  << rep.text() << "bootstrap 95th-pct drawdown " << ta::bootstrap_drawdown_p95(rets, 500, 20, 7)
+                  << "\ntrades needed for t=3 at this edge "
                   << ta::trades_needed(ta::mean(ta::r_multiples(r.trades)), ta::stdev(ta::r_multiples(r.trades)))
                   << "\nAlso required before capital: walk-forward/holdout, paper trading, and beating a\n"
                      "Nifty200 Momentum 30 index fund after tax.\n";
@@ -127,8 +181,10 @@ int run_a1(const cli::Args& a) {
 
 int run_a2(const cli::Args& a) {
     const ta::MarketData md(ta::load_universe(a.pos(1)));
+    const ta::Config conf = config_of(a);
     ta::A2Config cfg;
-    ta::apply_settings(config_of(a), cfg);
+    ta::apply_settings(conf, cfg);
+    sleeve_units(conf, cfg.risk, a.num("equity", 1e6), true);
     if (a.has("cost-rt")) cfg.cost.buy_frac = cfg.cost.sell_frac = a.num("cost-rt", 0.005) / 2;
     ta::IntradayData intra;
     if (!a.has("intraday")) throw std::runtime_error("a2 needs --intraday DIR");
@@ -153,10 +209,14 @@ int run_b(const cli::Args& a) {
     const ta::MarketData md(ta::load_universe(a.pos(1)));
     ta::CryptoTrendConfig cfg;
     ta::apply_settings(config_of(a), cfg);
+    if (a.has("replicate")) {
+        cfg.replication_mode();
+        std::cout << "replication mode: 10 bps, no funding, no tax, no drawdown/crowding overlay\n";
+    }
     cfg.cost_bps = a.num("cost-bps", cfg.cost_bps);
     cfg.tax_rate = a.num("tax", cfg.tax_rate);
     std::map<std::string, ta::CryptoAux> aux;
-    if (a.has("funding-dir")) {
+    if (a.has("funding-dir") && !a.has("replicate")) {
         for (const auto& [asset, s] : md.universe()) {
             const auto f = fs::path(a.str("funding-dir")) / (asset + ".csv");
             if (fs::exists(f)) aux[asset].funding = ta::load_dated_values(f.string());
@@ -176,15 +236,26 @@ int run_d1(const cli::Args& a) {
     const ta::Series bars = ta::load_series(a.pos(1));
     ta::D1Config cfg;
     ta::apply_settings(config_of(a), cfg);
-    cfg.cost_points = a.num("cost-points", cfg.cost_points);
+    cfg.cost_frac = a.num("cost-frac", cfg.cost_frac);
+    cfg.slippage_points = a.num("slippage-points", cfg.slippage_points);
+    ta::Series spot;
+    if (a.has("spot")) spot = ta::load_series(a.str("spot"));
     if (a.has("skip-days")) {
         for (const auto& d : ta::load_symbol_list(a.str("skip-days"))) cfg.skip_days.insert(d);
     }
-    const auto r = ta::run_d1_backtest(bars, cfg, a.num("equity", 2e6), a.str("start"), a.str("end"));
+    const auto r = ta::run_d1_backtest(bars, cfg, a.num("equity", 2e6), a.str("start"), a.str("end"),
+                                       spot.empty() ? nullptr : &spot);
+    if (spot.empty()) std::cout << "note: signal from futures bars; pass --spot to avoid roll-day carry\n";
     print_metrics(r.metrics);
     std::cout << "mean move      " << r.mean_move_points << " points in signal direction (t=" << r.move_t
-              << ")\ncost           " << r.cost_points << " points round trip\nswitch-on gate "
-              << (r.passes_gate ? "PASS" : "FAIL") << " (>= 2x cost, t > 3, >= 250 trades)\n";
+              << ")\ncost           " << r.cost_points << " points round trip (mean)\nslope beta     "
+              << r.beta << " (t=" << r.beta_t << "), archive below " << cfg.min_beta << '\n';
+    for (const auto& [year, bn] : r.beta_by_year) {
+        std::cout << "  " << year << ": beta " << bn.first << " (" << bn.second << " days)\n";
+    }
+    std::cout << "2022+ net      " << r.net_points_2022_on << " points per trade\nswitch-on gate "
+              << (r.passes_gate ? "PASS" : "FAIL")
+              << " (>= 2x cost, t > 3, >= 250 trades, beta >= min, 2022+ net > 0)\n";
     write_outputs(a, r.trades, r.equity_curve);
     return 0;
 }
@@ -213,7 +284,7 @@ int run_options(const cli::Args& a) {
 
 int main(int argc, char** argv) {
     try {
-        const cli::Args a(argc, argv, 1, {"gate", "vol-red", "blackout"});
+        const cli::Args a(argc, argv, 1, {"gate", "vol-red", "blackout", "replicate"});
         if (a.positional().empty()) {
             std::cerr << kUsage;
             return 2;

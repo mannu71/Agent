@@ -26,6 +26,11 @@ struct Allocation {
 // holds `sleeve_capital` must scale them to its own equity.
 double to_sleeve_fraction(double fraction_of_active_book, double active_book, double sleeve_capital);
 
+// Converts a risk config written in active-book units (risk per trade, per-stock cap,
+// daily loss) into the sleeve's own units. Used by both the backtester and the paper
+// runner so they test and trade the same risk. Drawdown limits stay sleeve-relative.
+void to_sleeve_units(RiskConfig& r, double active_book, double sleeve_capital);
+
 // Whole-active-book breaker: halve everything at -10%, stop everything at -20%
 // (latched until a human resets it).
 RiskConfig active_book_breaker_config();

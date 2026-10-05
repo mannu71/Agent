@@ -23,20 +23,30 @@ struct D1Config {
     double stop_frac = 0.0075;           // catastrophic stop, 0.75% (U)
     double lot_size = 65;                // Nifty lot from Jan 2026
     int lots = 1;                        // one lot only
-    double cost_points = 19;             // round trip, base; 38 stress
-    double min_sleeve_equity = 1.5e6;    // one lot needs ~Rs 15 lakh at 1x
+    // Round-trip cost in index points = cost_frac x futures price + slippage_points. Statutory
+    // charges (STT 0.05% on the sell since April 2026, exchange, SEBI, stamp, GST) scale
+    // with price (~0.06%); stress with slippage_points = 10.
+    double cost_frac = 0.0006;
+    double slippage_points = 3;
+    double min_sleeve_equity = 1.75e6;   // >= 65 x futures price (one lot at 1x)
+    double min_beta = 0.08;              // archive below this Indian last-half-hour slope
     std::set<std::string> skip_days;     // e.g. expiry days, when excluded
     RiskConfig risk;
 };
 
-// Signal per day from continuous near-month futures bars ("YYYY-MM-DD HH:MM" bar
-// start times): price at signal_time (close of the last bar starting before it) over
-// the prior day's last close, minus 1.
+// Signal per day from intraday bars ("YYYY-MM-DD HH:MM" bar start times): price at
+// signal_time (close of the last bar starting before it) over the prior day's last
+// close, minus 1. Computed from a continuous unadjusted futures file this jumps on roll
+// days (the prior close belongs to the expired contract), so pass the spot index as the
+// signal series whenever possible.
 std::map<std::string, double> d1_signals(const Series& intraday, const D1Config& cfg);
 
 class D1Engine {
 public:
-    D1Engine(const Series& intraday, D1Config cfg, double initial_equity);
+    // `intraday` is what is traded (near-month futures). `signal_bars`, when given (e.g.
+    // Nifty spot 1- or 5-minute bars), is used for the signal instead, so futures rolls
+    // cannot leak carry into s.
+    D1Engine(const Series& intraday, D1Config cfg, double initial_equity, const Series* signal_bars = nullptr);
 
     void step(const std::string& date, double risk_multiplier = 1.0, std::vector<KvRecord>* events = nullptr);
 
@@ -68,12 +78,19 @@ struct D1BacktestResult {
     Metrics metrics;
     double mean_move_points = 0;   // mean gross move in the signal direction, entry to exit
     double move_t = 0;             // t-statistic of that mean
-    double cost_points = 0;
-    // Rulebook switch-on: mean move >= 2x cost, t > 3 and at least 250 trades.
+    double cost_points = 0;        // mean modelled round-trip cost per trade
+    // Predictive slope of the 15:00 -> exit return on the signal over every day (Baltussen
+    // regression, OLS t), overall and by calendar year.
+    double beta = 0, beta_t = 0;
+    std::map<std::string, std::pair<double, int>> beta_by_year;
+    double net_points_2022_on = 0;  // mean net points per trade from 2022 (NaN if none)
+    // Switch-on: mean move >= 2x cost, t > 3, >= 250 trades, beta >= min_beta and the
+    // 2022+ trades net positive.
     bool passes_gate = false;
 };
 
 D1BacktestResult run_d1_backtest(const Series& intraday, const D1Config& cfg, double initial_equity,
-                                 const std::string& start = "", const std::string& end = "");
+                                 const std::string& start = "", const std::string& end = "",
+                                 const Series* signal_bars = nullptr);
 
 }  // namespace ta

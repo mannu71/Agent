@@ -35,6 +35,15 @@ double value_before(const std::map<std::string, double>& m, const std::string& d
 
 }  // namespace
 
+void CryptoTrendConfig::replication_mode() {
+    cost_bps = 10;
+    funding_annual_default = 0;
+    tax_rate = 0;
+    risk.drawdown_halve = 2.0;  // unreachable: no overlay
+    risk.drawdown_off = 2.0;
+    regime.funding_red_annual = std::numeric_limits<double>::infinity();
+}
+
 CryptoTrendEngine::CryptoTrendEngine(const MarketData& md, CryptoTrendConfig cfg,
                                      std::map<std::string, CryptoAux> aux, double initial_equity)
     : md_(md), cfg_(std::move(cfg)), aux_(std::move(aux)), risk_(cfg_.risk), cash_(initial_equity),
@@ -53,15 +62,18 @@ bool CryptoTrendEngine::update_signals(const std::string& asset, std::size_t i) 
         const double mid = (up + down) / 2.0;
         Signal& sig = signals_[asset][n];
         if (sig.long_) {
-            sig.stop = std::max(sig.stop, mid);
+            // The paper tests today's close against the stop carried from yesterday
+            // (TS_t = max(TS_t-1, Mid_t-1)), then ratchets with today's mid for tomorrow.
             if (s[i].close <= sig.stop) {
                 sig.long_ = false;
                 changed = true;
+            } else {
+                sig.stop = std::max(sig.stop, mid);
             }
         } else if (s[i].close >= up) {
             sig.long_ = true;
             sig.stop = mid;
-            ++entries_[n];
+            if (!priming_) ++entries_[n];
             changed = true;
         }
     }
@@ -83,6 +95,7 @@ double CryptoTrendEngine::target_weight(const std::string& asset, std::size_t i)
 }
 
 void CryptoTrendEngine::prime(const std::string& date) {
+    priming_ = true;
     for (const auto& d : md_.dates()) {
         if (d >= date) break;
         if (!primed_until_.empty() && d <= primed_until_) continue;
@@ -92,6 +105,7 @@ void CryptoTrendEngine::prime(const std::string& date) {
         }
         primed_until_ = d;
     }
+    priming_ = false;
 }
 
 double CryptoTrendEngine::mark(const std::string& date) const {

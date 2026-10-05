@@ -24,8 +24,14 @@ struct A2Config {
     double fno_band = 0.10;              // F&O dynamic band before flex
     double fno_trigger_margin = 0.01;    // F&O: skip if trigger within 1% of the upper band
     std::string or_start = "09:15";      // first 5-minute bar (after the pre-open auction)
-    std::string window_end = "10:15";    // buy-stop valid for bars starting before this
-    std::string weakness_time = "15:20"; // day 0: below entry at this bar -> exit at the close
+    std::string window_end = "15:15";    // buy-stop valid for bars starting before this; the
+                                         // paper sets no deadline (10:15 is a tested variant)
+    std::string weakness_time = "15:20"; // day 0: below entry at this bar -> exit at the close;
+                                         // empty switches the rule off
+    bool require_catalyst = true;        // false = the paper's catalyst-free "any gap" baseline
+    bool skip_after_gap_day = true;      // trader's 4th factor: no gap right after a gap day
+    double min_rv = 1.0;                 // first-5-minute relative volume gate (0 = off)
+    std::string partial_mode = "day3";   // "day3" (1/3 at day 3) or "targets" (25% at 2/4/8/10R)
     double tick = 0.05;
     double entry_limit_frac = 0.005;
     double approve_pct = 0.80;           // approve above the 80th percentile of prior events
@@ -46,6 +52,9 @@ struct A2Config {
         exits.trail_slow = 10;          // always SMA10
         exits.fast_trail_min_adr = 0;
     }
+
+    // Applies partial_mode to the exit rules ("targets" = the paper's four 25% exits).
+    void apply_partial_mode();
 };
 
 struct IntradayData {
@@ -77,7 +86,9 @@ struct GapEvent {
     double adr = 0;
     bool fno = false;
     double upper_band = 0;
-    std::vector<double> vars;   // 8 oriented proxy variables (higher = preferred)
+    std::vector<double> vars;   // 6 oriented price proxies of the trader's eye (higher = preferred)
+    double vol_ratio = 0;       // SMA20/SMA50 volume, logged only (the trader never saw volume)
+    double rv = 0;              // first-5-minute relative volume, used as a gate, not in the score
     bool neglect = false, range_breakout = false, early_cycle = false;  // rulebook trait flags
     double score = 0;
     bool approved = false;

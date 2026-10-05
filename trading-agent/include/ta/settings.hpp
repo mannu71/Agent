@@ -17,6 +17,7 @@ namespace ta {
 // configuration instead of being recompiled. Every key is optional.
 void apply_settings(const Config& c, Allocation& a);
 void apply_settings(const Config& c, A1Config& a1);
+void apply_settings(const Config& c, RegimeConfig& r);
 void apply_settings(const Config& c, A2Config& a2);
 void apply_settings(const Config& c, CryptoTrendConfig& b);
 void apply_settings(const Config& c, D1Config& d1);

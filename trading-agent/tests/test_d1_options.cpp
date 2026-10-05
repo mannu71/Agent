@@ -1,5 +1,6 @@
 #include <cmath>
 #include <limits>
+#include <random>
 
 #include "harness.hpp"
 #include "ta/d1.hpp"
@@ -109,4 +110,42 @@ TEST(options_credit_must_cover_costs) {
     ctx.active_book = 2.5e6;
     const auto c = ta::check_structure(thin, ta::OptionsConfig{}, ctx);
     CHECK(!c.ok);
+}
+
+TEST(d1_spot_signal_ignores_futures_roll) {
+    // Day 120 is a roll: the new contract opens 3% above the old one's close (carry), while
+    // the spot index is flat. A futures-based signal sees +3% and trades; spot does not.
+    ta::Series fut, spot;
+    double pf = 23000, ps = 23000;
+    for (int k = 0; k < 120; ++k) {
+        add_day(fut, th::iso_day(k), pf, k % 2 ? 0.001 : -0.001, 0.0);
+        add_day(spot, th::iso_day(k), ps, k % 2 ? 0.001 : -0.001, 0.0);
+    }
+    pf *= 1.03;
+    add_day(fut, th::iso_day(120), pf, 0.0, 0.0);
+    add_day(spot, th::iso_day(120), ps, 0.0, 0.0);
+    ta::D1Config cfg;
+    CHECK(ta::run_d1_backtest(fut, cfg, 2e6, th::iso_day(120)).trades.size() == 1);
+    CHECK(ta::run_d1_backtest(fut, cfg, 2e6, th::iso_day(120), "", &spot).trades.empty());
+}
+
+TEST(d1_beta_recovers_last_half_hour_slope) {
+    // The last half hour moves 0.25 x the day's move to 15:00: the regression slope must be
+    // near 0.25 (above the 0.08 archive line); with no follow-through it must be near 0.
+    std::mt19937 rng(4);
+    std::normal_distribution<double> g(0, 0.008);
+    ta::Series follow, none;
+    double p1 = 23000, p2 = 23000;
+    for (int k = 0; k < 300; ++k) {
+        const double d = g(rng);
+        add_day(follow, th::iso_day(k), p1, d, 0.25 * d);
+        add_day(none, th::iso_day(k), p2, d, 0.0);
+    }
+    const auto a = ta::run_d1_backtest(follow, ta::D1Config{}, 2e6);
+    const auto b = ta::run_d1_backtest(none, ta::D1Config{}, 2e6);
+    CHECK_NEAR(a.beta, 0.25, 0.03);
+    CHECK(a.beta_t > 3);
+    CHECK(std::fabs(b.beta) < 0.02);
+    CHECK(!b.passes_gate);
+    CHECK(a.beta_by_year.size() >= 1);
 }
