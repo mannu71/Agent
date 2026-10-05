@@ -53,6 +53,24 @@ double ann_vol(const Series& s, std::size_t i, std::size_t n) {
     return std::sqrt(std::max(var, 0.0)) * std::sqrt(252.0);
 }
 
+double atr_frac(const Series& s, std::size_t i, std::size_t n) {
+    if (i >= s.size() || i < n || n == 0) return kNaN;
+    double sum = 0;
+    for (std::size_t k = i + 1 - n; k <= i; ++k) {
+        const double pc = s[k - 1].close;
+        const double tr = std::max({s[k].high - s[k].low, std::fabs(s[k].high - pc), std::fabs(s[k].low - pc)});
+        sum += tr / s[k].close;
+    }
+    return sum / static_cast<double>(n);
+}
+
+double sma_volume(const Series& s, std::size_t i, std::size_t n) {
+    if (!has_window(s, i, n)) return kNaN;
+    double sum = 0;
+    for (std::size_t k = i + 1 - n; k <= i; ++k) sum += s[k].volume;
+    return sum / static_cast<double>(n);
+}
+
 double highest_high(const Series& s, std::size_t i, std::size_t n) {
     if (!has_window(s, i, n)) return kNaN;
     double h = s[i + 1 - n].high;

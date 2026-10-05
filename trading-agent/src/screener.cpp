@@ -56,7 +56,7 @@ double setup_pivot(const Series& s, std::size_t i, const ScreenConfig& cfg) {
     return pivot;
 }
 
-std::vector<Candidate> screen(const std::vector<SymbolView>& views, const ScreenConfig& cfg) {
+std::vector<ScoredSymbol> score_universe(const std::vector<SymbolView>& views, const ScreenConfig& cfg) {
     std::vector<const SymbolView*> eligible;
     std::vector<double> f6m, f12m, fhigh, f3m;
     for (const auto& v : views) {
@@ -71,26 +71,28 @@ std::vector<Candidate> screen(const std::vector<SymbolView>& views, const Screen
         fhigh.push_back(s[v.idx].close / hi52);
         f3m.push_back(ret(s, v.idx, 63));
     }
-    if (eligible.empty()) return {};
-
     const auto z6 = zscore_clipped(f6m), z12 = zscore_clipped(f12m);
     const auto zh = zscore_clipped(fhigh), z3 = zscore_clipped(f3m);
 
-    std::vector<std::pair<double, const SymbolView*>> ranked;
+    std::vector<ScoredSymbol> ranked;
     for (std::size_t k = 0; k < eligible.size(); ++k) {
-        ranked.emplace_back((z6[k] + z12[k] + zh[k] + z3[k]) / 4.0, eligible[k]);
+        ranked.push_back({eligible[k]->symbol, (z6[k] + z12[k] + zh[k] + z3[k]) / 4.0, eligible[k]});
     }
     std::stable_sort(ranked.begin(), ranked.end(),
-                     [](const auto& a, const auto& b) { return a.first > b.first; });
+                     [](const ScoredSymbol& a, const ScoredSymbol& b) { return a.score > b.score; });
+    return ranked;
+}
 
+std::vector<Candidate> screen(const std::vector<SymbolView>& views, const ScreenConfig& cfg) {
+    const auto ranked = score_universe(views, cfg);
     const auto keep = static_cast<std::size_t>(
         std::ceil(cfg.top_fraction * static_cast<double>(ranked.size())));
     std::vector<Candidate> out;
     for (std::size_t k = 0; k < keep && k < ranked.size(); ++k) {
-        const SymbolView& v = *ranked[k].second;
+        const SymbolView& v = *ranked[k].view;
         const double pivot = setup_pivot(*v.series, v.idx, cfg);
         if (std::isnan(pivot)) continue;
-        out.push_back({v.symbol, ranked[k].first, pivot, adr_frac(*v.series, v.idx, 20)});
+        out.push_back({v.symbol, ranked[k].score, pivot, adr_frac(*v.series, v.idx, 20)});
     }
     return out;
 }

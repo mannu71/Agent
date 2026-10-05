@@ -44,6 +44,17 @@ bool passes_universe(const Series& s, std::size_t i, const ScreenConfig& cfg);
 // Returns the pivot (base high) when bar i completes a valid setup, else NaN.
 double setup_pivot(const Series& s, std::size_t i, const ScreenConfig& cfg);
 
+struct ScoredSymbol {
+    std::string symbol;
+    double score = 0;
+    const SymbolView* view = nullptr;
+};
+
+// Composite momentum score for every eligible symbol (vol-adjusted 6m and 12m return,
+// close / 52-week high, 63-day return), sorted best first. Logged daily so the
+// screener's rank IC can be monitored.
+std::vector<ScoredSymbol> score_universe(const std::vector<SymbolView>& views, const ScreenConfig& cfg);
+
 // Ranks eligible symbols by composite momentum (vol-adjusted 6m and 12m return,
 // close / 52-week high, 63-day return), keeps the top fraction, then applies the
 // setup filters. Result is sorted by score, best first.

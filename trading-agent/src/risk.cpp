@@ -41,12 +41,27 @@ bool RiskManager::allows_new_entries(double equity_now) const {
 }
 
 SizeDecision RiskManager::size_long(double equity, double cash, double gross_exposure, double entry,
-                                    double stop, double adr, double round_trip_cost_frac) const {
-    if (state_ == RiskState::Off) return {0, "risk_off"};
+                                    double stop, double adr, double round_trip_cost_frac,
+                                    double multiplier) const {
     if (!(entry > 0) || !(stop > 0) || stop >= entry) return {0, "invalid_stop"};
+    return size_units(equity, cash, gross_exposure, entry, entry - stop, adr, round_trip_cost_frac,
+                      multiplier);
+}
+
+SizeDecision RiskManager::size_short(double equity, double cash, double gross_exposure, double entry,
+                                     double stop, double adr, double round_trip_cost_frac,
+                                     double multiplier) const {
+    if (!(entry > 0) || !(stop > 0) || stop <= entry) return {0, "invalid_stop"};
+    return size_units(equity, cash, gross_exposure, entry, stop - entry, adr, round_trip_cost_frac,
+                      multiplier);
+}
+
+SizeDecision RiskManager::size_units(double equity, double cash, double gross_exposure, double entry,
+                                     double risk_per_share, double adr, double round_trip_cost_frac,
+                                     double multiplier) const {
+    if (state_ == RiskState::Off) return {0, "risk_off"};
     if (!(adr > 0)) return {0, "invalid_adr"};
 
-    const double risk_per_share = entry - stop;
     if (risk_per_share / entry > cfg_.max_stop_adr_mult * adr + 1e-12) return {0, "stop_too_wide"};
     if (round_trip_cost_frac * entry > cfg_.max_cost_to_r * risk_per_share) {
         return {0, "cost_exceeds_r_limit"};
@@ -54,6 +69,7 @@ SizeDecision RiskManager::size_long(double equity, double cash, double gross_exp
 
     double risk_frac = std::min(cfg_.risk_per_trade, cfg_.max_risk_per_trade);
     if (state_ == RiskState::Halved) risk_frac *= 0.5;
+    risk_frac *= std::clamp(multiplier, 0.0, 1.0);
 
     const double by_risk = std::floor(equity * risk_frac / risk_per_share);
     const double by_position = std::floor(equity * cfg_.max_position_frac / entry);
@@ -69,6 +85,22 @@ SizeDecision RiskManager::size_long(double equity, double cash, double gross_exp
 void RiskManager::manual_reset() {
     state_ = RiskState::Normal;
     high_water_ = last_equity_;
+}
+
+KvRecord RiskManager::snapshot() const {
+    KvRecord r;
+    r.type = "risk";
+    r.set("state", std::string(to_string(state_)));
+    r.set("high_water", high_water_).set("last_equity", last_equity_).set("day_start", day_start_equity_);
+    return r;
+}
+
+void RiskManager::restore(const KvRecord& r) {
+    const std::string s = r.str("state", "normal");
+    state_ = s == "off" ? RiskState::Off : s == "halved" ? RiskState::Halved : RiskState::Normal;
+    high_water_ = r.num("high_water");
+    last_equity_ = r.num("last_equity");
+    day_start_equity_ = r.num("day_start");
 }
 
 const char* to_string(RiskState s) {

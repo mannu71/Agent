@@ -23,6 +23,12 @@ double ret(const Series& s, std::size_t i, std::size_t n);
 // Standard deviation of daily log returns over the last n returns, annualised with sqrt(252).
 double ann_vol(const Series& s, std::size_t i, std::size_t n);
 
+// Mean true range over the last n bars as a fraction of each bar's close (needs i >= n).
+double atr_frac(const Series& s, std::size_t i, std::size_t n);
+
+// Mean volume over the last n bars.
+double sma_volume(const Series& s, std::size_t i, std::size_t n);
+
 // Highest high / lowest low over the last n bars, including bar i.
 double highest_high(const Series& s, std::size_t i, std::size_t n);
 double lowest_low(const Series& s, std::size_t i, std::size_t n);

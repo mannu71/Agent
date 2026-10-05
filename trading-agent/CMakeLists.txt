@@ -11,19 +11,20 @@ endif()
 
 add_compile_options(-Wall -Wextra -Wpedantic)
 
-add_library(ta_core
-  src/csv.cpp
-  src/indicators.cpp
-  src/risk.cpp
-  src/screener.cpp
-  src/backtest.cpp
-)
+find_package(OpenSSL REQUIRED)  # SHA-256 for the hash-chained journal
+
+file(GLOB TA_SOURCES CONFIGURE_DEPENDS src/*.cpp)
+list(FILTER TA_SOURCES EXCLUDE REGEX ".*/src/(main|paper_main|ingest_main)\\.cpp$")
+
+add_library(ta_core ${TA_SOURCES})
 target_include_directories(ta_core PUBLIC include)
+target_link_libraries(ta_core PUBLIC OpenSSL::Crypto)
 
 add_executable(ta_backtest src/main.cpp)
 target_link_libraries(ta_backtest PRIVATE ta_core)
 
 enable_testing()
-add_executable(ta_tests tests/test_main.cpp)
+file(GLOB TA_TESTS CONFIGURE_DEPENDS tests/*.cpp)
+add_executable(ta_tests ${TA_TESTS})
 target_link_libraries(ta_tests PRIVATE ta_core)
 add_test(NAME ta_tests COMMAND ta_tests)

@@ -2,6 +2,8 @@
 
 #include <string>
 
+#include "ta/kv.hpp"
+
 namespace ta {
 
 // Hard limits from the blueprint / rulebook. Defaults are judgment-based, not
@@ -40,17 +42,31 @@ public:
     bool daily_loss_breached(double equity_now) const;
     bool allows_new_entries(double equity_now) const;
 
-    // Shares to buy for a long entry at `entry` with protective stop `stop`.
-    // `gross_exposure` is the current market value of open positions.
+    // Units to buy for a long entry at `entry` with protective stop `stop` < entry.
+    // `gross_exposure` is the current market value of open positions. `multiplier`
+    // scales risk down further (active-book breaker, volatility gate); it never scales up.
     SizeDecision size_long(double equity, double cash, double gross_exposure, double entry,
-                           double stop, double adr, double round_trip_cost_frac) const;
+                           double stop, double adr, double round_trip_cost_frac,
+                           double multiplier = 1.0) const;
+    // Same for a short entry, with stop > entry.
+    SizeDecision size_short(double equity, double cash, double gross_exposure, double entry,
+                            double stop, double adr, double round_trip_cost_frac,
+                            double multiplier = 1.0) const;
 
     // Clears the Off latch. Only for a human after reviewing what went wrong.
     void manual_reset();
 
     const RiskConfig& config() const { return cfg_; }
 
+    // Persistence for paper trading.
+    KvRecord snapshot() const;
+    void restore(const KvRecord& r);
+
 private:
+    SizeDecision size_units(double equity, double cash, double gross_exposure, double entry,
+                            double risk_per_unit, double adr, double round_trip_cost_frac,
+                            double multiplier) const;
+
     RiskConfig cfg_;
     RiskState state_ = RiskState::Normal;
     double high_water_ = 0;
