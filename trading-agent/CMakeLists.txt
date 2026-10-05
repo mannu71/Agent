@@ -22,6 +22,10 @@ target_link_libraries(ta_core PUBLIC OpenSSL::Crypto)
 
 add_executable(ta_backtest src/main.cpp)
 target_link_libraries(ta_backtest PRIVATE ta_core)
+add_executable(ta_paper src/paper_main.cpp)
+target_link_libraries(ta_paper PRIVATE ta_core)
+add_executable(ta_ingest src/ingest_main.cpp)
+target_link_libraries(ta_ingest PRIVATE ta_core)
 
 enable_testing()
 file(GLOB TA_TESTS CONFIGURE_DEPENDS tests/*.cpp)

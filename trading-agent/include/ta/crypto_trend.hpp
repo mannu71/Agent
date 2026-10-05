@@ -56,6 +56,7 @@ public:
     // Number of entries per lookback, for the reproduce-first check against the paper.
     const std::map<std::size_t, long>& entries_by_lookback() const { return entries_; }
     double exposure(const std::string& asset) const;  // units held
+    int holdings() const { return static_cast<int>(holdings_.size()); }
     RiskManager& risk() { return risk_; }
     const RiskManager& risk() const { return risk_; }
 

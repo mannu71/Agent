@@ -53,6 +53,8 @@ public:
                             double stop, double adr, double round_trip_cost_frac,
                             double multiplier = 1.0) const;
 
+    // Latches Off (kill switch or a kill rule). Only manual_reset() clears it.
+    void force_off() { state_ = RiskState::Off; }
     // Clears the Off latch. Only for a human after reviewing what went wrong.
     void manual_reset();
 

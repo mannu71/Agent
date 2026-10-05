@@ -1,5 +1,6 @@
 #include "ta/market.hpp"
 
+#include <algorithm>
 #include <set>
 
 namespace ta {
@@ -14,6 +15,10 @@ MarketData::MarketData(Universe u) : u_(std::move(u)) {
         }
     }
     dates_.assign(dates.begin(), dates.end());
+}
+
+bool MarketData::has_date(const std::string& date) const {
+    return std::binary_search(dates_.begin(), dates_.end(), date);
 }
 
 const Bar* MarketData::bar(const std::string& sym, const std::string& date, std::size_t* idx) const {

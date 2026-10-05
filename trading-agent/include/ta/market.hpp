@@ -22,6 +22,7 @@ public:
 
     // Sorted union of all dates in the universe.
     const std::vector<std::string>& dates() const { return dates_; }
+    bool has_date(const std::string& date) const;
 
 private:
     Universe u_;
