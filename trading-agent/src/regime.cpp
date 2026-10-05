@@ -69,11 +69,31 @@ Gate vix_gate(const std::map<std::string, double>& vix, const std::string& date,
 }
 
 Gate crash_gate(const Series& index, std::size_t i, const RegimeConfig& cfg) {
-    // A sharp fall followed by a sharp rebound: the state in which momentum crashes.
-    if (i < 63) return Gate::Unknown;
+    if (i < 63 || i >= index.size()) return Gate::Unknown;
+    // Fast trigger: a sharp fall followed by a sharp rebound.
     const double fall = std::min(ret(index, i, 63), ret(index, i - 21, 42));
-    const double rebound = ret(index, i, 21);
-    return fall <= cfg.crash_fall && rebound >= cfg.crash_rebound ? Gate::Red : Gate::Green;
+    const bool fast = fall <= cfg.crash_fall && ret(index, i, 21) >= cfg.crash_rebound;
+
+    // Daniel & Moskowitz bear state with high variance. Rolling variances come from prefix
+    // sums of daily log returns so the whole history costs O(i).
+    bool dm = false;
+    const std::size_t n = cfg.crash_vol_n;
+    if (n >= 2 && i >= cfg.crash_bear_lookback && i > n && ret(index, i, cfg.crash_bear_lookback) < 0) {
+        std::vector<double> s1(i + 1, 0.0), s2(i + 1, 0.0);
+        for (std::size_t k = 1; k <= i; ++k) {
+            const double r = std::log(index[k].close / index[k - 1].close);
+            s1[k] = s1[k - 1] + r;
+            s2[k] = s2[k - 1] + r * r;
+        }
+        auto var_at = [&](std::size_t k) {  // variance of the n returns ending at bar k
+            const double a = s1[k] - s1[k - n], b = s2[k] - s2[k - n];
+            return (b - a * a / static_cast<double>(n)) / static_cast<double>(n - 1);
+        };
+        std::vector<double> hist;
+        for (std::size_t k = n; k < i; ++k) hist.push_back(var_at(k));
+        dm = !hist.empty() && percentile_rank(hist, var_at(i)) > cfg.crash_vol_pct;
+    }
+    return fast || dm ? Gate::Red : Gate::Green;
 }
 
 Gate crowding_gate(double funding_annualized, double oi_now, double oi_prev, const RegimeConfig& cfg) {

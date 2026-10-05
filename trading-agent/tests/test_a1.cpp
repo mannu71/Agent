@@ -353,3 +353,62 @@ TEST(a1_partial_off_switch) {
         CHECK(pos.stop < pos.trade.entry_price);
     }
 }
+
+TEST(a1_vol_scaling_shrinks_size_in_high_vol) {
+    // Same breakout twice: after a calm index and after a volatile one. With a fixed 10%
+    // volatility target the volatile case must trade fewer shares.
+    ta::Series s = setup_series();
+    const double trigger = s.back().high + 0.05;
+    s.push_back({date_of(280), trigger, trigger * 1.04, trigger * 0.99, trigger * 1.03, 1e7});
+    auto index_of = [&](double amp) {
+        ta::Series idx;
+        double c = 1000;
+        for (std::size_t k = 0; k < s.size(); ++k) {
+            c *= k % 2 ? 1.0 + amp : 1.0 - amp;
+            idx.push_back({s[k].date, c, c, c, c, 1});
+        }
+        return idx;
+    };
+    const ta::Series calm = index_of(0.003), wild = index_of(0.03);
+    ta::A1Config cfg;
+    cfg.vol_target = 0.10;
+    const ta::MarketData md({{"AAA", s}});
+    ta::EquityRegimeInputs rc, rw;
+    rc.index = &calm;
+    rw.index = &wild;
+    cfg.regime.trend_sma = 5;  // keep the trend gate out of the way of this test
+    const auto a = ta::run_a1_backtest(md, cfg, {}, 1e6, date_of(279), "", rc);
+    const auto b = ta::run_a1_backtest(md, cfg, {}, 1e6, date_of(279), "", rw);
+    CHECK(a.trades.size() == 1 && b.trades.size() == 1);
+    if (a.trades.size() == 1 && b.trades.size() == 1) CHECK(b.trades[0].qty < a.trades[0].qty / 2);
+}
+
+TEST(a1_atr_runner_trail_replaces_sma) {
+    // Partial off and ATR runner on: a dip below SMA20 that stays above highest-close - 10 ATR
+    // keeps the position open, where the SMA trail would have exited.
+    ta::Series s = setup_series();
+    const double trigger = s.back().high + 0.05;
+    double c = trigger * 1.03;
+    s.push_back({date_of(280), trigger, trigger * 1.04, trigger * 0.99, c, 1e7});
+    for (int k = 281; k < 290; ++k) {
+        c *= 1.03;
+        s.push_back(bar_at(k, c, 1.02, 0.99));
+    }
+    const double drop = trigger * 1.02;
+    s.push_back({date_of(290), s.back().close, s.back().close, drop * 0.995, drop, 1e7});
+    s.push_back(bar_at(291, drop, 1.01, 0.99));
+    const ta::MarketData md({{"AAA", s}});
+    ta::A1Config sma, runner;
+    sma.exits.partial_frac = 0;
+    runner.exits.partial_frac = 0;
+    runner.exits.runner_atr = true;
+    runner.exits.runner_atr_n = 14;  // the synthetic history is short
+    ta::A1Engine e1(md, sma, {}, {}, 1e6), e2(md, runner, {}, {}, 1e6);
+    for (const auto& d : md.dates()) {
+        if (d < date_of(279)) continue;
+        e1.step(d);
+        e2.step(d);
+    }
+    CHECK(e1.positions() == 0);  // SMA trail exited at the 291 open
+    CHECK(e2.positions() == 1);  // runner still holds
+}

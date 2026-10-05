@@ -20,8 +20,13 @@ struct RegimeConfig {
     std::size_t vol_lookback = 250;  // percentile window for volatility
     double vol_red_pct = 0.80;       // red when today's vol is in the top 20% of its own year
     std::size_t realized_vol_n = 30; // realised-vol window when no VIX series is given
-    double crash_fall = -0.15;       // momentum-crash state: 63-day return <= -15% ...
+    double crash_fall = -0.15;       // fast trigger: 63-day return <= -15% ...
     double crash_rebound = 0.10;     // ... and 21-day return >= +10% (panic rebound)
+    // Daniel & Moskowitz ex-ante danger state: market down over ~2 years AND daily-return
+    // variance over the last 126 days above its own historical median. Red if either holds.
+    std::size_t crash_bear_lookback = 504;
+    std::size_t crash_vol_n = 126;
+    double crash_vol_pct = 0.5;
     double funding_red_annual = 0.30;  // perp funding above 30%/yr with rising OI
     int event_days_before = 1;       // default blackout around scheduled events
     int event_days_after = 1;

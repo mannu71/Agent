@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 #include "ta/indicators.hpp"
 
@@ -18,7 +19,7 @@ KvRecord SwingPosition::to_kv() const {
     r.type = "pos";
     r.set("held", qty).set("stop", stop).set("adr", adr_at_entry).set("last_close", last_close);
     r.set("days_held", static_cast<long>(days_held)).set("partial_done", partial_done);
-    r.set("exit_next_open", exit_next_open);
+    r.set("exit_next_open", exit_next_open).set("high_close", high_close);
     return r;
 }
 
@@ -32,6 +33,7 @@ SwingPosition SwingPosition::from_kv(const KvRecord& r) {
     p.days_held = static_cast<int>(r.integer("days_held"));
     p.partial_done = r.integer("partial_done") != 0;
     p.exit_next_open = r.integer("exit_next_open") != 0;
+    p.high_close = r.num("high_close");
     return p;
 }
 
@@ -51,6 +53,7 @@ SwingPosition& SwingBook::open(const std::string& sym, const std::string& date, 
     pos.stop = stop;
     pos.adr_at_entry = adr;
     pos.last_close = close;
+    pos.high_close = close;
 
     const double notional = static_cast<double>(qty) * fill;
     const double cost = notional * cost_.buy_frac;
@@ -130,9 +133,15 @@ void SwingBook::manage_at_close(const MarketData& md, const std::string& date, s
         if (!holds(sym)) continue;
         SwingPosition& p = positions_.at(sym);
 
+        p.high_close = std::max(p.high_close, b->close);
         const double one_r = entry + exits_.time_stop_min_r * p.trade.risk_per_share;
+        const bool runner = exits_.runner_atr && (p.partial_done || !partial_on);
         const std::size_t trail_n = p.adr_at_entry >= exits_.fast_trail_min_adr ? exits_.trail_fast : exits_.trail_slow;
-        const double trail = sma_close(md.series(sym), i, trail_n);
+        const double trail = runner ? std::numeric_limits<double>::quiet_NaN() : sma_close(md.series(sym), i, trail_n);
+        if (runner) {
+            const double a = atr(md.series(sym), i, exits_.runner_atr_n);
+            if (!std::isnan(a)) p.stop = std::max(p.stop, p.high_close - exits_.runner_atr_k * a);
+        }
         if (p.days_held >= exits_.max_hold_days) {
             sell(sym, p.qty, b->close, date, "max_hold", events);
         } else if (exits_.time_stop_day > 0 && p.days_held == exits_.time_stop_day && b->close < one_r) {

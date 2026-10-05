@@ -2,6 +2,9 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
+
+#include "ta/indicators.hpp"
 
 namespace ta {
 
@@ -13,7 +16,36 @@ A1Engine::A1Engine(const MarketData& md, A1Config cfg, ExclusionList excluded, E
       regime_in_(regime),
       risk_(cfg.risk),
       book_("A1", cfg.cost, cfg.exits, initial_equity),
-      last_equity_(initial_equity) {}
+      last_equity_(initial_equity) {
+    if (regime_in_.index && cfg_.vol_scale) {
+        for (std::size_t k = 0; k < regime_in_.index->size(); ++k) {
+            index_vol_.push_back(ann_vol(*regime_in_.index, k, cfg_.vol_n));
+        }
+    }
+}
+
+double A1Engine::vol_multiplier(const std::string& date) const {
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+    if (index_vol_.empty()) return nan;
+    const Series& idx = *regime_in_.index;
+    const auto it = std::upper_bound(idx.begin(), idx.end(), date,
+                                     [](const std::string& d, const Bar& b) { return d < b.date; });
+    if (it == idx.begin()) return nan;
+    const auto j = static_cast<std::size_t>(std::distance(idx.begin(), it) - 1);
+    const double now = index_vol_[j];
+    if (std::isnan(now) || now <= 0) return nan;
+    double target = cfg_.vol_target;
+    if (target <= 0) {
+        std::vector<double> hist;
+        for (std::size_t k = 0; k < j; ++k) {
+            if (!std::isnan(index_vol_[k])) hist.push_back(index_vol_[k]);
+        }
+        if (hist.size() < 252) return nan;  // need a year of history for the median
+        std::nth_element(hist.begin(), hist.begin() + static_cast<long>(hist.size() / 2), hist.end());
+        target = hist[hist.size() / 2];
+    }
+    return std::min(cfg_.vol_scale_cap, target / now);
+}
 
 void A1Engine::step(const std::string& date, const StepContext& ctx) {
     // Day-start equity for the daily loss limit is yesterday's close mark.
@@ -99,13 +131,15 @@ void A1Engine::screen_for_tomorrow(const std::string& date, std::vector<KvRecord
     const EquityRegime reg =
         evaluate_equity_regime({regime_in_.index, regime_in_.vix, nullptr, nullptr}, date, cfg_.regime);
     pending_allowed_ = reg.allow_new_entries();
-    pending_risk_mult_ = reg.risk_multiplier();
+    const double vm = cfg_.vol_scale ? vol_multiplier(date) : std::numeric_limits<double>::quiet_NaN();
+    pending_risk_mult_ = std::isnan(vm) ? reg.risk_multiplier() : vm;
 
     if (events) {
         KvRecord r;
         r.type = "regime";
         r.set("sleeve", std::string("A1")).set("date", date).set("trend", std::string(to_string(reg.trend)));
         r.set("vol", std::string(to_string(reg.vol))).set("crash", std::string(to_string(reg.crash)));
+        r.set("risk_mult", pending_risk_mult_);
         events->push_back(r);
         for (const Candidate& c : pending_) {
             KvRecord s;

@@ -54,10 +54,41 @@ void apply_settings(const Config& c, A1Config& a1) {
     config_set(c, "a1.partial_day", a1.exits.partial_day);
     config_set(c, "a1.time_stop_day", a1.exits.time_stop_day);
     config_set(c, "a1.max_hold_days", a1.exits.max_hold_days);
-    config_set(c, "regime.trend_sma", a1.regime.trend_sma);
-    config_set(c, "regime.vol_red_pct", a1.regime.vol_red_pct);
-    config_set(c, "regime.event_days_before", a1.regime.event_days_before);
-    config_set(c, "regime.event_days_after", a1.regime.event_days_after);
+    config_set(c, "a1.partial_frac", a1.exits.partial_frac);
+    std::string runner = a1.exits.runner_atr ? "atr" : "sma";
+    config_set(c, "a1.runner_trail", runner);
+    if (runner != "atr" && runner != "sma") throw std::runtime_error("a1.runner_trail must be sma or atr");
+    a1.exits.runner_atr = runner == "atr";
+    config_set(c, "a1.runner_atr_n", a1.exits.runner_atr_n);
+    config_set(c, "a1.runner_atr_k", a1.exits.runner_atr_k);
+    config_set(c, "a1.mom_skip_days", a1.screen.mom_skip_days);
+    config_set(c, "a1.vol_scale", a1.vol_scale);
+    config_set(c, "a1.vol_target", a1.vol_target);
+    config_set(c, "a1.vol_n", a1.vol_n);
+    config_set(c, "a1.vol_scale_cap", a1.vol_scale_cap);
+    apply_settings(c, a1.regime);
+}
+
+void apply_settings(const Config& c, RegimeConfig& r) {
+    config_set(c, "regime.trend_sma", r.trend_sma);
+    config_set(c, "regime.vol_lookback", r.vol_lookback);
+    config_set(c, "regime.vol_red_pct", r.vol_red_pct);
+    config_set(c, "regime.realized_vol_n", r.realized_vol_n);
+    config_set(c, "regime.crash_fall", r.crash_fall);
+    config_set(c, "regime.crash_rebound", r.crash_rebound);
+    config_set(c, "regime.crash_bear_lookback", r.crash_bear_lookback);
+    config_set(c, "regime.crash_vol_n", r.crash_vol_n);
+    config_set(c, "regime.crash_vol_pct", r.crash_vol_pct);
+    config_set(c, "regime.funding_red_annual", r.funding_red_annual);
+    config_set(c, "regime.event_days_before", r.event_days_before);
+    config_set(c, "regime.event_days_after", r.event_days_after);
+    config_set(c, "regime.event_trading_days", r.event_trading_days);
+    // Per-event-type windows: regime.event_days_before.<tag> / regime.event_days_after.<tag>
+    const std::string before = "regime.event_days_before.", after = "regime.event_days_after.";
+    for (const auto& [k, v] : c) {
+        if (k.rfind(before, 0) == 0) r.event_before_by_tag[k.substr(before.size())] = std::stoi(v);
+        if (k.rfind(after, 0) == 0) r.event_after_by_tag[k.substr(after.size())] = std::stoi(v);
+    }
 }
 
 void apply_settings(const Config& c, A2Config& a2) {
@@ -79,7 +110,7 @@ void apply_settings(const Config& c, CryptoTrendConfig& b) {
     config_set(c, "b.cost_bps", b.cost_bps);
     config_set(c, "b.tax_rate", b.tax_rate);
     config_set(c, "b.funding_annual_default", b.funding_annual_default);
-    config_set(c, "regime.funding_red_annual", b.regime.funding_red_annual);
+    apply_settings(c, b.regime);
 }
 
 void apply_settings(const Config& c, D1Config& d1) {
@@ -134,11 +165,31 @@ std::vector<std::pair<std::string, std::string>> default_settings() {
                            {"a1.partial_day", std::to_string(a1.exits.partial_day)},
                            {"a1.time_stop_day", std::to_string(a1.exits.time_stop_day)},
                            {"a1.max_hold_days", std::to_string(a1.exits.max_hold_days)},
-                           {"regime.trend_sma", std::to_string(a1.regime.trend_sma)},
-                           {"regime.vol_red_pct", f(a1.regime.vol_red_pct)},
-                           {"regime.event_days_before", std::to_string(a1.regime.event_days_before)},
-                           {"regime.event_days_after", std::to_string(a1.regime.event_days_after)},
-                           {"regime.funding_red_annual", f(b.regime.funding_red_annual)}});
+                           {"a1.partial_frac", f(a1.exits.partial_frac)},
+                           {"a1.runner_trail", a1.exits.runner_atr ? "atr" : "sma"},
+                           {"a1.runner_atr_n", std::to_string(a1.exits.runner_atr_n)},
+                           {"a1.runner_atr_k", f(a1.exits.runner_atr_k)},
+                           {"a1.mom_skip_days", std::to_string(a1.screen.mom_skip_days)},
+                           {"a1.vol_scale", a1.vol_scale ? "1" : "0"},
+                           {"a1.vol_target", f(a1.vol_target)},
+                           {"a1.vol_n", std::to_string(a1.vol_n)},
+                           {"a1.vol_scale_cap", f(a1.vol_scale_cap)}});
+    const RegimeConfig& rg = a1.regime;
+    out.insert(out.end(), {{"regime.trend_sma", std::to_string(rg.trend_sma)},
+                           {"regime.vol_lookback", std::to_string(rg.vol_lookback)},
+                           {"regime.vol_red_pct", f(rg.vol_red_pct)},
+                           {"regime.realized_vol_n", std::to_string(rg.realized_vol_n)},
+                           {"regime.crash_fall", f(rg.crash_fall)},
+                           {"regime.crash_rebound", f(rg.crash_rebound)},
+                           {"regime.crash_bear_lookback", std::to_string(rg.crash_bear_lookback)},
+                           {"regime.crash_vol_n", std::to_string(rg.crash_vol_n)},
+                           {"regime.crash_vol_pct", f(rg.crash_vol_pct)},
+                           {"regime.funding_red_annual", f(rg.funding_red_annual)},
+                           {"regime.event_days_before", std::to_string(rg.event_days_before)},
+                           {"regime.event_days_after", std::to_string(rg.event_days_after)},
+                           {"regime.event_trading_days", rg.event_trading_days ? "1" : "0"}});
+    for (const auto& [tag, d] : rg.event_before_by_tag) out.emplace_back("regime.event_days_before." + tag, std::to_string(d));
+    for (const auto& [tag, d] : rg.event_after_by_tag) out.emplace_back("regime.event_days_after." + tag, std::to_string(d));
     risk("a2.", a2.risk);
     out.insert(out.end(), {{"a2.cost_round_trip", f(a2.cost.round_trip())},
                            {"a2.min_gap", f(a2.min_gap)},
@@ -171,7 +222,8 @@ void check_settings_keys(const Config& c) {
     for (const auto& [k, v] : c) {
         // Account and data keys are handled by the paper runner itself.
         if (k.rfind("data.", 0) == 0 || k.rfind("account.", 0) == 0 || k.rfind("paper.", 0) == 0 ||
-            k.rfind("kill.", 0) == 0) {
+            k.rfind("kill.", 0) == 0 || k.rfind("regime.event_days_before.", 0) == 0 ||
+            k.rfind("regime.event_days_after.", 0) == 0) {
             continue;
         }
         if (!known.count(k)) throw std::runtime_error("unknown config key: " + k);

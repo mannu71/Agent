@@ -26,6 +26,9 @@ double ann_vol(const Series& s, std::size_t i, std::size_t n);
 // Mean true range over the last n bars as a fraction of each bar's close (needs i >= n).
 double atr_frac(const Series& s, std::size_t i, std::size_t n);
 
+// Mean true range over the last n bars, in price units (needs i >= n).
+double atr(const Series& s, std::size_t i, std::size_t n);
+
 // Mean volume over the last n bars.
 double sma_volume(const Series& s, std::size_t i, std::size_t n);
 

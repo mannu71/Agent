@@ -116,3 +116,63 @@ TEST(allocation_validation_and_scaling) {
     // 0.40% of E_A for a sleeve holding 40% of E_A is 1% of the sleeve.
     CHECK_NEAR(ta::to_sleeve_fraction(0.004, 250000, 100000), 0.01, 1e-12);
 }
+
+TEST(crash_gate_daniel_moskowitz_state) {
+    // Two years drifting down with variance falling over time (current variance below its
+    // median): green. Then a volatile stretch in the same bear market: red, without the
+    // fast rebound trigger.
+    ta::Series s;
+    double c = 1000;
+    for (int k = 0; k < 600; ++k) {
+        const double amp = k < 300 ? 0.010 : 0.002;
+        c *= (k % 2 ? 1.0 + amp : 1.0 - amp) * 0.9995;
+        s.push_back({th::iso_day(k), c, c, c, c, 1});
+    }
+    CHECK(ta::crash_gate(s, s.size() - 1, ta::RegimeConfig{}) == ta::Gate::Green);
+    for (int k = 600; k < 640; ++k) {
+        c *= k % 2 ? 1.03 : 0.97;
+        s.push_back({th::iso_day(k), c, c, c, c, 1});
+    }
+    CHECK(ta::crash_gate(s, s.size() - 1, ta::RegimeConfig{}) == ta::Gate::Red);
+}
+
+#include "ta/settings.hpp"
+
+TEST(settings_new_keys_apply_and_typos_rejected) {
+    ta::Config c = {{"a1.runner_trail", "atr"},
+                    {"a1.partial_frac", "0"},
+                    {"a1.vol_scale", "false"},
+                    {"regime.event_days_before.election", "7"},
+                    {"regime.event_days_after.fomc", "0"},
+                    {"regime.crash_vol_pct", "0.6"}};
+    ta::check_settings_keys(c);
+    ta::A1Config a1;
+    ta::apply_settings(c, a1);
+    CHECK(a1.exits.runner_atr);
+    CHECK(a1.exits.partial_frac == 0);
+    CHECK(!a1.vol_scale);
+    CHECK(a1.regime.event_before_by_tag.at("election") == 7);
+    CHECK(a1.regime.event_after_by_tag.at("fomc") == 0);
+    CHECK_NEAR(a1.regime.crash_vol_pct, 0.6, 1e-12);
+    CHECK(a1.exits.max_hold_days == 250);
+
+    bool threw = false;
+    try {
+        ta::check_settings_keys({{"a1.runner_trial", "atr"}});
+    } catch (const std::exception&) {
+        threw = true;
+    }
+    CHECK(threw);
+    threw = false;
+    try {
+        ta::A1Config x;
+        ta::apply_settings({{"a1.runner_trail", "ema"}}, x);
+    } catch (const std::exception&) {
+        threw = true;
+    }
+    CHECK(threw);
+    // Every default key round-trips through the checker.
+    ta::Config defaults;
+    for (const auto& [k, v] : ta::default_settings()) defaults[k] = v;
+    ta::check_settings_keys(defaults);
+}
