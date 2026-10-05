@@ -12,6 +12,7 @@
 #include "ta/crypto_trend.hpp"
 #include "ta/csv.hpp"
 #include "ta/d1.hpp"
+#include "ta/journal.hpp"
 #include "ta/options.hpp"
 #include "ta/regime.hpp"
 #include "ta/settings.hpp"
@@ -35,6 +36,8 @@ const char* kUsage = R"(usage: ta_backtest <sleeve> ... [options]
                     Nifty last-half-hour momentum; --spot takes the signal from the spot index
   options --legs "P:22000:-1:85,P:21800:1:40,..." --expiry YYYY-MM-DD --today YYYY-MM-DD
           --active-book N [--existing N] [--vol-red] [--blackout] [--lot 65]
+  a1 also takes --trial-log FILE [--label TEXT]: every configuration run is appended
+     (deduplicated by a hash of its settings) and --gate counts all logged trials
                     validate and size a defined-risk structure (Sleeve C)
 
 common: --equity N  --start YYYY-MM-DD  --end YYYY-MM-DD  --config F (key = value overrides)
@@ -106,35 +109,69 @@ int run_a1(const cli::Args& a) {
               << cfg.cost.round_trip() * 100 << "% round trip)\n";
     write_outputs(a, r.trades, r.equity_curve);
 
+    // Fingerprint of everything that determines this run, so the trial log can tell a new
+    // configuration from a rerun of an old one.
+    // Every effective setting is included with numbers normalised, so the same configuration
+    // hashes the same whether a value came from a default, a config file or the grid.
+    auto fingerprint = [&](const ta::Config& c) {
+        std::string f = "a1|" + a.pos(1);
+        for (const char* k : {"start", "end", "equity", "cost-rt", "exclude", "index", "vix", "events"}) {
+            f += std::string("|") + k + "=" + a.str(k);
+        }
+        for (const auto& [k, def] : ta::default_settings()) {
+            const auto it = c.find(k);
+            std::string v = it == c.end() ? def : it->second;
+            try {
+                std::size_t used = 0;
+                const double x = std::stod(v, &used);
+                if (used == v.size()) v = ta::fmt_double(x);
+            } catch (const std::exception&) {
+            }
+            f += "|" + k + "=" + v;
+        }
+        return f;
+    };
+    const std::string fp = fingerprint(conf);
+    const std::string log = a.str("trial-log");
+    if (!log.empty()) {
+        const bool added = ta::log_trial(log, {"A1", ta::sha256_hex(fp), a.str("label", "run"), r.equity_curve});
+        std::cout << (added ? "trial logged" : "trial already in log (same settings)") << " -> " << log << '\n';
+    }
+
     if (a.has("gate")) {
         ta::A1Config stress = cfg;
         stress.cost.buy_frac *= 2;
         stress.cost.sell_frac *= 2;
         const auto r2 = ta::run_a1_backtest(md, stress, excl, equity, a.str("start"), a.str("end"), reg);
-        // Every grid point counts as a trial for the deflated Sharpe ratio and PBO.
-        std::vector<std::vector<double>> perf;
-        std::vector<double> trial_sr;
+        // Every grid point is a trial for the deflated Sharpe ratio and PBO.
+        std::vector<ta::TrialRecord> grid;
         for (double runup : {0.25, 0.30, 0.40}) {
             for (double adr : {0.03, 0.04, 0.05}) {
                 ta::A1Config g = cfg;
                 g.screen.min_runup = runup;
                 g.screen.min_adr = adr;
                 const auto rg = ta::run_a1_backtest(md, g, excl, equity, a.str("start"), a.str("end"), reg);
-                const auto ret = ta::periodic_returns(rg.equity_curve);
-                if (perf.empty()) perf.assign(ret.size(), {});
-                for (std::size_t t = 0; t < ret.size() && t < perf.size(); ++t) perf[t].push_back(ret[t]);
-                const double sd = ta::stdev(ret);
-                trial_sr.push_back(sd > 0 ? ta::mean(ret) / sd : 0);
+                ta::Config gc = conf;
+                gc["a1.min_runup"] = ta::fmt_double(runup);
+                gc["a1.min_adr"] = ta::fmt_double(adr);
+                const std::string tag = "grid runup=" + ta::fmt_double(runup) + " adr=" + ta::fmt_double(adr);
+                grid.push_back({"A1", ta::sha256_hex(fingerprint(gc)), tag, rg.equity_curve});
             }
         }
-        const double var_sr = std::pow(ta::stdev(trial_sr), 2);
-        const double pbo = ta::pbo_cscv(perf, 16);
-        const auto rep = ta::evaluate_gate1(r.trades, r.equity_curve, r2.trades,
-                                            static_cast<int>(trial_sr.size()), var_sr, pbo);
+        std::vector<ta::TrialRecord> trials = grid;
+        if (!log.empty()) {
+            for (const auto& t : grid) ta::log_trial(log, t);
+            trials = ta::load_trials(log, "A1");
+        } else {
+            std::cout << "warning: no --trial-log, so N counts only the 9 grid points; every other\n"
+                         "configuration you have tried is missing from the deflated Sharpe and PBO.\n";
+        }
+        const ta::TrialStats st = ta::trial_stats(trials, 16);
+        const auto rep = ta::evaluate_gate1(r.trades, r.equity_curve, r2.trades, st.n, st.var_sharpe, st.pbo);
         const auto rets = ta::periodic_returns(r.equity_curve);
-        std::cout << "\n--- gate 1 (" << trial_sr.size() << " trials) ---\n" << rep.text()
-                  << "bootstrap 95th-pct drawdown " << ta::bootstrap_drawdown_p95(rets, 500, 20, 7) << "\n"
-                  << "trades needed for t=3 at this edge "
+        std::cout << "\n--- gate 1 (" << st.n << " trials, " << st.common_periods << " common periods) ---\n"
+                  << rep.text() << "bootstrap 95th-pct drawdown " << ta::bootstrap_drawdown_p95(rets, 500, 20, 7)
+                  << "\ntrades needed for t=3 at this edge "
                   << ta::trades_needed(ta::mean(ta::r_multiples(r.trades)), ta::stdev(ta::r_multiples(r.trades)))
                   << "\nAlso required before capital: walk-forward/holdout, paper trading, and beating a\n"
                      "Nifty200 Momentum 30 index fund after tax.\n";

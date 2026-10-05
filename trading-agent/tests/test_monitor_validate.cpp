@@ -159,3 +159,26 @@ TEST(gate1_report) {
     const auto bad = ta::evaluate_gate1(trades_with_r({-0.1, -0.2}), curve, {}, 9, 0.0005, 0.5);
     CHECK(!bad.pass());
 }
+
+TEST(trial_log_dedupes_and_counts_every_trial) {
+    const std::string path = th::temp_dir("trials") + "/trials.log";
+    std::mt19937 rng(8);
+    std::normal_distribution<double> g(0.0003, 0.01);
+    auto curve = [&](int n) {
+        ta::EquityCurve c;
+        double e = 1e6;
+        for (int k = 0; k < n; ++k) c.emplace_back(th::iso_day(k), e *= 1 + g(rng));
+        return c;
+    };
+    for (int j = 0; j < 5; ++j) CHECK(ta::log_trial(path, {"A1", "id" + std::to_string(j), "t", curve(400)}));
+    CHECK(!ta::log_trial(path, {"A1", "id3", "rerun", curve(400)}));  // same settings: not a new trial
+    CHECK(ta::log_trial(path, {"B", "id0", "other sleeve", curve(400)}));
+    const auto trials = ta::load_trials(path, "A1");
+    CHECK(trials.size() == 5);
+    CHECK(trials[0].curve.size() == 400);
+    const auto st = ta::trial_stats(trials, 16);
+    CHECK(st.n == 5);
+    CHECK(st.common_periods == 399);
+    CHECK(st.var_sharpe > 0);
+    CHECK(st.pbo >= 0 && st.pbo <= 1);
+}

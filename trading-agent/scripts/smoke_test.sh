@@ -42,8 +42,11 @@ with open(f"{work}/nifty_fut.csv", "w") as f:
 PY
 set -x
 "$build/ta_ingest" bhavcopy "$work/bhav" "$work/nse" --non-eq-out "$work/t2t.csv"
-"$build/ta_backtest" a1 "$work/nse" --gate --trades "$work/a1_trades.csv"
-"$build/ta_backtest" b "$work/crypto" --cost-bps 25
+printf 'a1.runner_trail = atr\na1.partial_frac = 0\n' > "$work/runner.cfg"
+"$build/ta_backtest" a1 "$work/nse" --trial-log "$work/trials.log" --label runner --config "$work/runner.cfg"
+"$build/ta_backtest" a1 "$work/nse" --gate --trial-log "$work/trials.log" --trades "$work/a1_trades.csv"
+"$build/ta_backtest" b "$work/crypto" --replicate
+"$build/ta_backtest" b "$work/crypto"
 "$build/ta_backtest" d1 "$work/nifty_fut.csv"
 "$build/ta_backtest" options --legs "P:22000:-1:85,P:21800:1:40,C:24000:-1:70,C:24200:1:30" \
   --expiry 2026-10-13 --today 2026-10-06 --active-book 2500000

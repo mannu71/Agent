@@ -37,7 +37,7 @@ so that adapter is the next piece of work once it can be developed against the l
 ```sh
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release   # needs OpenSSL (libssl-dev)
 cmake --build build
-./build/ta_tests                    # 70 unit tests, no external test framework
+./build/ta_tests                    # 85 unit tests, no external test framework
 scripts/smoke_test.sh build         # end-to-end run of every tool on synthetic data
 ```
 
@@ -56,7 +56,8 @@ All inputs are plain CSV files; the agent never fetches anything itself.
 | Price bands | `SYMBOL,FO` or `SYMBOL,20` | A2 |
 | Crypto daily, one file per asset, 00:00 UTC close | OHLCV | B |
 | Funding / open interest per asset | `date,value` (day's total funding rate as a fraction) | B |
-| Nifty near-month future, continuous 1- or 5-minute bars | intraday OHLCV | D1 |
+| Nifty near-month future, continuous 1- or 5-minute bars | intraday OHLCV | D1 (traded prices) |
+| Nifty spot index, 1- or 5-minute bars | intraday OHLCV | D1 signal (avoids roll-day carry) |
 
 Helpers (untested here because the network is blocked; check one request by hand first):
 
@@ -74,26 +75,31 @@ renames are not merged automatically.
 
 ```sh
 ./build/ta_backtest a1 data/nse --index data/nifty.csv --vix data/vix.csv --events data/events.csv \
-    --exclude data/t2t.csv --start 2018-01-01 --gate
+    --exclude data/t2t.csv --start 2018-01-01 --trial-log trials.log --gate
 ./build/ta_backtest a2 data/nse --intraday data/nse_5m --catalysts data/filings.csv --bands data/bands.csv
-./build/ta_backtest b  data/crypto --funding-dir data/funding --cost-bps 25
-./build/ta_backtest d1 data/nifty_fut_5m.csv --cost-points 38
+./build/ta_backtest b  data/crypto --replicate          # reproduce the paper first (10 bps, no overlay)
+./build/ta_backtest b  data/crypto --funding-dir data/funding
+./build/ta_backtest d1 data/nifty_fut_5m.csv --spot data/nifty_spot_5m.csv --slippage-points 10
 ./build/ta_backtest options --legs "P:22000:-1:85,P:21800:1:40,C:24000:-1:70,C:24200:1:30" \
     --expiry 2026-10-13 --today 2026-10-06 --active-book 2500000
 ```
 
-`--gate` reruns A1 at 2× costs and over a 9-point parameter grid, then prints the gate-1 report:
+`--trial-log FILE` appends every A1 configuration you run (deduplicated by a hash of its effective
+settings), and `--gate` computes the deflated Sharpe and PBO over **all** logged trials, so variants
+you tried and discarded still count. Without a log the gate falls back to its 9-point grid and warns.
+`--gate` also reruns A1 at 2× costs and over a 9-point parameter grid, then prints the gate-1 report:
 expectancy ≥ +0.15R at 1× and > 0 at 2× costs, t > 3, deflated Sharpe ≥ 0.95, PBO < 0.20, max
 drawdown ≤ 25%, positive without the top 1% of trades, no year above 40% of P&L. `--config FILE`
 overrides any limit (`key = value`; unknown keys are rejected so typos cannot silently fall back
-to defaults). In `ta_backtest` the whole backtest equity is the sleeve, so risk fractions are of
-that equity.
+to defaults). Risk keys are in active-book units in both tools: `ta_backtest` treats `--equity` as
+the sleeve's capital and converts exactly as the paper runner does (A1 0.40% of E_A = 1.0% of the
+sleeve with the default allocation), so the backtest tests the risk that is paper-traded.
 
 ## Paper trading
 
 ```sh
 ./build/ta_paper init acct --capital 10000000 --start 2026-10-06 \
-    --set data.equity_dir=data/nse --set data.crypto_dir=data/crypto --set data.nifty_fut=data/fut.csv
+    --set data.equity_dir=data/nse --set data.crypto_dir=data/crypto --set data.nifty_fut=data/fut.csv --set data.nifty_spot=data/spot.csv
 # after each day's data update (e.g. from cron at 18:30 IST):
 ./build/ta_paper run acct          # catch up, print positions and tomorrow's buy-stops
 ./build/ta_paper status acct
@@ -124,11 +130,18 @@ that equity.
 
 | Sleeve | Entry | Stop and exits | Size |
 |---|---|---|---|
-| A1 | top 20% composite momentum (6/12-month vol-adjusted return, close/52-week high, 63-day return); run-up ≥ 30%, ADR ≥ 4%, close > SMA10 > SMA20, tight base; buy-stop at pivot + 1 tick next day, limit +0.5% | fill × (1 − ADR); 1/3 at day-3 close if in profit, stop to entry; trail SMA10 (ADR ≥ 5%) or SMA20; day-20 time stop below +1R; 120-day cap | 0.40% of E_A at risk, ≤ 5% of E_A per stock, regime-gated |
-| A2 | gap ≥ 6% with filing between prior 15:30 and 09:15; F&O or 10/20%-band stocks; score above 80th percentile of the prior 250 days' events; green 09:15 bar, buy-stop at its high + 1 tick until 10:15 | first-bar low − 1 tick; below entry at 15:20 → exit at close; 1/3 at day 3; trail SMA10; 30-day cap | 0.25% of E_A, ≤ 2 entries a day |
-| B | new n-day closing high for n ∈ {5…360} | ratcheting mid-channel stop per lookback | min(0.25/σ90, 2) per lookback, averaged, capped at 1× per asset; rebalance on signal or 20% drift; halve on crowding |
+| A1 | top 20% composite momentum (6/12-month vol-adjusted return, close/52-week high, 63-day return; `a1.mom_skip_days = 21` is the 12-1 variant); run-up ≥ 30%, ADR ≥ 4%, close > SMA10 > SMA20, tight base; buy-stop at pivot + 1 tick next day, limit +0.5% | fill × (1 − ADR); 1/3 at day-3 close if in profit, stop to entry (`a1.partial_frac = 0` switches it off); trail SMA10 (ADR ≥ 5%) or SMA20, or `a1.runner_trail = atr` (highest close − 10 × ATR42); day-20 time stop below +1R; **250-day cap** | 0.40% of E_A at risk, ≤ 5% of E_A per stock, × min(1, median σ126 / current σ126 of the index) when an index is given, regime-gated |
+| A2 | gap ≥ 6% with a filing between prior 15:30 and 09:15 (`a2.require_catalyst = 0` runs the paper's any-gap baseline); not right after a gap day; first-5-minute relative volume ≥ 1; F&O or 10/20%-band stocks; price-only score above the 80th percentile of the prior 250 days' events; green 09:15 bar, buy-stop at its high + 1 tick until 15:15 | first-bar low − 1 tick; below entry at 15:20 → exit at close (`a2.weakness_time` empty = off); 1/3 at day 3, or `a2.partial_mode = targets` (the paper's 25% at 2R/4R/8R/10R); trail SMA10; 30-day cap | 0.25% of E_A, ≤ 2 entries a day |
+| B | new n-day closing high for n ∈ {5…360} | today's close tested against yesterday's mid-channel stop, then ratcheted | min(0.25/σ90, 2) per lookback, averaged, capped at 1× per asset; rebalance on signal or 20% drift; halve on crowding; 25 bps, 10%/yr funding when data is missing; sleeve halves at −20%, off at −30% |
 | C | iron condors / flies / credit spreads only | max loss defined by wings | max loss ≤ 0.75% of E_A per expiry; no entry on expiry day, in blackouts or when the vol gate is red |
-| D1 | \|15:00 move\| ≥ 70th percentile of the prior 250 days | 0.75% stop, exit 15:28 | one lot, needs ≥ ₹15 lakh |
+| D1 | \|15:00 move\| ≥ 70th percentile of the prior 250 days; signal from the spot index when given | 0.75% stop, exit 15:28 | one lot, needs ≥ ₹17.5 lakh; cost 0.06% of price + 3 points; switch-on also needs slope β ≥ 0.08 and 2022+ trades net positive |
+
+Regime: trend gate (index > 200-DMA); crash gate red on the fast trigger (63-day ≤ −15% then 21-day
+≥ +10%) **or** the Daniel & Moskowitz state (504-day return < 0 and 126-day variance above its
+median); event blackouts count **trading sessions** with per-event windows (election 5 before / 3
+after, Budget ±1, RBI 0/1; set `regime.event_days_before.<tag>`, tags matched by substring).
+
+Parameter choices and their evidence: `../reports/SSRN parameter tuning for agent.md`.
 
 ## Approximations and known limitations
 
@@ -139,9 +152,13 @@ that equity.
   modelled. A2 uses the official open as a proxy for the pre-open equilibrium price.
 * Results are pre-tax except Sleeve B, which deducts 31.2% of every realised gain with no loss
   offset and no fee deduction (worst case; INR-settled perps may get business-income treatment).
-* The blueprint's sleeve stop (halve −7.5%, off −15%) also applies to B, although the rulebook
-  plans for 25–30% drawdowns in B; with defaults B will often be switched off. This is a real
-  conflict between the two documents and needs a decision (`b.drawdown_halve`, `b.drawdown_off`).
+* B's sleeve stop is −20% halve / −30% off, not the blueprint's −7.5%/−15%: a healthy trend sleeve
+  at ~15% volatility has a median 3-year drawdown near 19%. The same tension exists for A1 at
+  paper-runner risk units (the tuning report's simulation has its −15% latch firing in 41–73% of
+  healthy paths); resolve it with sizing measured on the units-corrected backtest.
+* D1 is very likely to fail its gate: the published slope implies 11–20 points of gross move
+  against a ~38-point bar. Run `ta_backtest d1 --spot ...` first and archive the sleeve if β < 0.08.
+* A2 profit targets fill on daily bars from the day after entry, not intraday on the gap day.
 * Every threshold marked U (unverified) in the rulebook is a trial: change it, and the deflated
   Sharpe and PBO numbers must account for it.
 * Paper fills are simulated; slippage against a real order book is not measured until a broker
