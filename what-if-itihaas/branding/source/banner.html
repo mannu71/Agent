@@ -1,0 +1,47 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="style.css"><script src="common.js"></script></head>
+<body><div id="o"></div><script>
+const W = 2560, H = 1440;
+// battlefield horizon silhouette: ground, standards (dhvaja) and pennants
+let s = 42; const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
+let ground = `M0,${H}`;
+for (let x = 0; x <= W; x += 40) ground += ` L${x},${1270 + Math.sin(x/260)*22 + Math.sin(x/97)*8}`;
+ground += ` L${W},${H} Z`;
+let poles = '';
+for (let i = 0; i < 46; i++) {
+  const x = rnd()*W, base = 1275 + Math.sin(x/260)*22, h = 90 + rnd()*170, dir = rnd() > 0.5 ? 1 : -1;
+  poles += `<line x1="${x}" y1="${base}" x2="${x}" y2="${base-h}" stroke="#07091A" stroke-width="${3+rnd()*3}"/>`;
+  poles += `<path d="M${x},${base-h} Q${x+dir*40},${base-h+8} ${x+dir*(60+rnd()*40)},${base-h+18} L${x},${base-h+34} Z" fill="#07091A"/>`;
+}
+// arrows streaking across the upper corners (outside the text safe area)
+let arrows = '';
+for (let i = 0; i < 26; i++) {
+  const left = i % 2 === 0, x = left ? rnd()*480 : 2080 + rnd()*480, y = 60 + rnd()*380, len = 90 + rnd()*90;
+  const dx = left ? len : -len, dy = len*0.35;
+  arrows += `<line x1="${x}" y1="${y}" x2="${x+dx}" y2="${y+dy}" stroke="#F2E8D5" stroke-opacity="${0.12+rnd()*0.2}" stroke-width="2"/>`;
+}
+document.getElementById('o').innerHTML = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+<defs>
+ <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0%" stop-color="#0D1024"/><stop offset="45%" stop-color="#1B1F3B"/>
+  <stop offset="72%" stop-color="#3A2A45"/><stop offset="86%" stop-color="#8B3A1E"/><stop offset="94%" stop-color="#E8891C"/></linearGradient>
+ <radialGradient id="sun" cx="50%" cy="100%" r="60%">
+  <stop offset="0%" stop-color="#F6C46A" stop-opacity="0.75"/><stop offset="40%" stop-color="#E8891C" stop-opacity="0.25"/><stop offset="100%" stop-color="#E8891C" stop-opacity="0"/></radialGradient>
+ <linearGradient id="tgold" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0%" stop-color="#F6DE8D"/><stop offset="55%" stop-color="#D4AF37"/><stop offset="100%" stop-color="#A47E24"/></linearGradient>
+ <filter id="sh" x="-10%" y="-10%" width="120%" height="140%"><feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#000" flood-opacity="0.6"/></filter>
+</defs>
+<rect width="${W}" height="${H}" fill="url(#sky)"/>
+<ellipse cx="1280" cy="1300" rx="1300" ry="520" fill="url(#sun)"/>
+${stars(W, H, 260, 11, 900)}
+${arrows}
+<text x="1280" y="1040" text-anchor="middle" font-family="Tiro" font-size="560" fill="#F2E8D5" opacity="0.04">इतिहास</text>
+${wheel(712, 722, 150, 'b')}
+<g filter="url(#sh)">
+ <text x="950" y="636" font-family="Bebas" font-size="112" letter-spacing="22" fill="#E8891C">WHAT IF</text>
+ <text x="942" y="814" font-family="Cinzel" font-weight="900" font-size="176" letter-spacing="6" fill="url(#tgold)">ITIHAAS</text>
+ <text x="952" y="884" font-family="Cinzel" font-weight="500" font-size="38" letter-spacing="2" fill="#F2E8D5">The epics, one different choice at a time.</text>
+</g>
+<path d="${ground}" fill="#07091A"/>
+${poles}
+</svg>`;
+</script></body></html>

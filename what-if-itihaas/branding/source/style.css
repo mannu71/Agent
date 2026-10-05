@@ -1,0 +1,5 @@
+@font-face { font-family: Cinzel; src: url(fonts/Cinzel.ttf); font-weight: 400 900; }
+@font-face { font-family: Bebas; src: url(fonts/BebasNeue-Regular.ttf); }
+@font-face { font-family: Tiro; src: url(fonts/TiroDevanagariHindi-Regular.ttf); }
+html, body { margin: 0; padding: 0; background: #1B1F3B; overflow: hidden; }
+svg { display: block; }
