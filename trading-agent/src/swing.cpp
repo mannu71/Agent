@@ -20,6 +20,7 @@ KvRecord SwingPosition::to_kv() const {
     r.set("held", qty).set("stop", stop).set("adr", adr_at_entry).set("last_close", last_close);
     r.set("days_held", static_cast<long>(days_held)).set("partial_done", partial_done);
     r.set("exit_next_open", exit_next_open).set("high_close", high_close);
+    r.set("targets_done", static_cast<long>(targets_done));
     return r;
 }
 
@@ -34,6 +35,7 @@ SwingPosition SwingPosition::from_kv(const KvRecord& r) {
     p.partial_done = r.integer("partial_done") != 0;
     p.exit_next_open = r.integer("exit_next_open") != 0;
     p.high_close = r.num("high_close");
+    p.targets_done = static_cast<int>(r.integer("targets_done"));
     return p;
 }
 
@@ -108,6 +110,17 @@ void SwingBook::exits_at_open(const MarketData& md, const std::string& date, std
         if (pos.exit_next_open) sell(sym, pos.qty, b->open, date, "trail", events);
         else if (b->open <= pos.stop) sell(sym, pos.qty, b->open, date, "stop_gap", events);
         else if (b->low <= pos.stop) sell(sym, pos.qty, pos.stop, date, "stop", events);
+        // Profit targets (pessimistic: the stop is checked first on the same bar).
+        while (holds(sym) && positions_.at(sym).targets_done < static_cast<int>(exits_.r_targets.size())) {
+            SwingPosition& p = positions_.at(sym);
+            const auto& [r_mult, frac] = exits_.r_targets[static_cast<std::size_t>(p.targets_done)];
+            const double px = p.trade.entry_price + r_mult * p.trade.risk_per_share;
+            if (b->high < px) break;
+            const bool last = p.targets_done + 1 == static_cast<int>(exits_.r_targets.size());
+            const long q = last ? p.qty : std::min(p.qty, static_cast<long>(std::floor(static_cast<double>(p.trade.qty) * frac)));
+            ++p.targets_done;
+            if (q > 0) sell(sym, q, std::max(b->open, px), date, "target", events);
+        }
     }
 }
 

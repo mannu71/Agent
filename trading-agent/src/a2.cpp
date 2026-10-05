@@ -15,7 +15,7 @@ namespace ta {
 namespace {
 
 constexpr double kNaN = std::numeric_limits<double>::quiet_NaN();
-constexpr std::size_t kVars = 8;
+constexpr std::size_t kVars = 6;
 constexpr long kShadowUnits = 300;  // divisible by 3 so the partial exit is exact
 constexpr long kAll = std::numeric_limits<long>::max();
 
@@ -42,7 +42,7 @@ void run_day0(SwingBook& book, const std::string& sym, const std::string& date, 
     }
     for (std::size_t k = e.bar + 1; k < n && book.holds(sym); ++k) {
         const Bar& b = bars[k];
-        if (time_of(b.date) >= cfg.weakness_time) {
+        if (!cfg.weakness_time.empty() && time_of(b.date) >= cfg.weakness_time) {
             if (b.open < e.fill) book.sell(sym, kAll, bars[n - 1].close, date, "weak_day0", events);
             else if (b.low <= e.stop) book.sell(sym, kAll, std::min(b.open, e.stop), date, "stop", events);
             // After 15:20 the position is held overnight unless a later bar hits the stop.
@@ -83,6 +83,8 @@ GapEvent event_from_kv(const KvRecord& r) {
         const std::string key = "v" + std::to_string(k);
         ev.vars.push_back(r.str(key) == "nan" ? kNaN : r.num(key, kNaN));
     }
+    ev.vol_ratio = r.num("vol_ratio");
+    ev.rv = r.num("rv");
     ev.neglect = r.integer("neglect") != 0;
     ev.range_breakout = r.integer("range_breakout") != 0;
     ev.early_cycle = r.integer("early_cycle") != 0;
@@ -197,9 +199,20 @@ EntryResult simulate_entry(const GapEvent& ev, const Bar* bars, std::size_t n, c
     return r;
 }
 
+void A2Config::apply_partial_mode() {
+    if (partial_mode == "targets") {
+        exits.partial_frac = 0;  // the four targets replace the day-3 partial
+        exits.r_targets = {{2, 0.25}, {4, 0.25}, {8, 0.25}, {10, 0.25}};
+    } else if (partial_mode == "day3") {
+        exits.r_targets.clear();
+    } else {
+        throw std::runtime_error("a2.partial_mode must be day3 or targets");
+    }
+}
+
 A2Engine::A2Engine(const MarketData& md, A2Config cfg, A2Inputs in, double initial_equity)
     : md_(md),
-      cfg_(std::move(cfg)),
+      cfg_((cfg.apply_partial_mode(), std::move(cfg))),
       in_(std::move(in)),
       risk_(cfg_.risk),
       book_("A2", cfg_.cost, cfg_.exits, initial_equity),
@@ -231,12 +244,16 @@ std::vector<GapEvent> A2Engine::detect(const std::string& date) const {
         }
 
         // Catalyst filed after the prior session's close and before today's open.
-        const auto cat = in_.catalysts.find(sym);
-        if (cat == in_.catalysts.end()) continue;
-        const std::string from = prev.date + " 15:30", to = date + " " + cfg_.or_start;
-        const bool has_catalyst = std::any_of(cat->second.begin(), cat->second.end(),
-                                              [&](const std::string& t) { return t > from && t <= to; });
-        if (!has_catalyst) continue;
+        if (cfg_.require_catalyst) {
+            const auto cat = in_.catalysts.find(sym);
+            if (cat == in_.catalysts.end()) continue;
+            const std::string from = prev.date + " 15:30", to = date + " " + cfg_.or_start;
+            const bool has_catalyst = std::any_of(cat->second.begin(), cat->second.end(),
+                                                  [&](const std::string& t) { return t > from && t <= to; });
+            if (!has_catalyst) continue;
+        }
+        // The trader avoided a gap that came right after a gap day.
+        if (cfg_.skip_after_gap_day && prev.open / s[i - 2].close - 1.0 >= cfg_.min_gap) continue;
 
         GapEvent ev;
         ev.date = date;
@@ -278,9 +295,17 @@ std::vector<GapEvent> A2Engine::detect(const std::string& date) const {
             if (today && n > 0 && cnt > 0 && base > 0) rv = today[0].volume / (base / static_cast<double>(cnt));
         }
 
-        ev.vars = {-std::max(r120, 0.0), -atr_ratio, -vol_ratio, b->open / hh60, -range60,
-                   -static_cast<double>(prior_gaps), -ext200, rv > 0 ? std::log(rv) : kNaN};
-        ev.neglect = r120 <= 0.15 && atr_ratio < 1.0 && vol_ratio < 1.0;
+        // First-5-minute relative volume is a hard gate (Zarattini, Barbon & Aziz: -0.02R below
+        // 1x, +0.08R above), standing in for the paper's pre-market volume filter.
+        if (cfg_.min_rv > 0 && (std::isnan(rv) || rv < cfg_.min_rv)) continue;
+
+        // Only price information enters the approval score: the trader saw neither volume
+        // nor price levels. Volume measures are logged separately.
+        ev.vars = {-std::max(r120, 0.0), -atr_ratio, b->open / hh60, -range60,
+                   -static_cast<double>(prior_gaps), -ext200};
+        ev.vol_ratio = vol_ratio;
+        ev.rv = std::isnan(rv) ? 0 : rv;
+        ev.neglect = r120 <= 0.15 && atr_ratio < 1.0;
         ev.range_breakout = b->open > hh60 && range60 <= 0.35;
         ev.early_cycle = prior_gaps <= 1 && ext200 <= 0.50;
         out.push_back(std::move(ev));
@@ -433,7 +458,9 @@ void A2Engine::load(const std::vector<KvRecord>& records) {
     book_.load(records);
 }
 
-double shadow_r(const GapEvent& ev, const MarketData& md, const IntradayData& intraday, const A2Config& cfg) {
+double shadow_r(const GapEvent& ev, const MarketData& md, const IntradayData& intraday, const A2Config& config) {
+    A2Config cfg = config;
+    cfg.apply_partial_mode();
     std::size_t n = 0;
     const Bar* bars = intraday.day(ev.symbol, ev.date, &n);
     const EntryResult e = simulate_entry(ev, bars, n, cfg);

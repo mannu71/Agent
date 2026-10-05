@@ -28,10 +28,11 @@ const char* kUsage = R"(usage: ta_backtest <sleeve> ... [options]
        --gate      run the 2x-cost rerun and a 9-trial grid; print the gate-1 report
   a2 <equity_dir> --intraday DIR --catalysts F --bands F
                     episodic-pivot gaps; prints the approved-vs-rejected uplift
-  b  <crypto_dir> [--funding-dir DIR] [--cost-bps 10] [--tax 0.312]
-                    crypto Donchian ensemble; prints entries per lookback
-  d1 <nifty_fut_5min.csv> [--cost-points 19] [--skip-days F]
-                    Nifty last-half-hour momentum
+  b  <crypto_dir> [--funding-dir DIR] [--cost-bps 25] [--tax 0.312] [--replicate]
+                    crypto Donchian ensemble; prints entries per lookback. --replicate runs
+                    the paper's setup (10 bps, no funding/tax/overlay) for the reproduce-first check
+  d1 <nifty_fut_5min.csv> [--spot F] [--cost-frac 0.0006] [--slippage-points 3] [--skip-days F]
+                    Nifty last-half-hour momentum; --spot takes the signal from the spot index
   options --legs "P:22000:-1:85,P:21800:1:40,..." --expiry YYYY-MM-DD --today YYYY-MM-DD
           --active-book N [--existing N] [--vol-red] [--blackout] [--lot 65]
                     validate and size a defined-risk structure (Sleeve C)
@@ -171,10 +172,14 @@ int run_b(const cli::Args& a) {
     const ta::MarketData md(ta::load_universe(a.pos(1)));
     ta::CryptoTrendConfig cfg;
     ta::apply_settings(config_of(a), cfg);
+    if (a.has("replicate")) {
+        cfg.replication_mode();
+        std::cout << "replication mode: 10 bps, no funding, no tax, no drawdown/crowding overlay\n";
+    }
     cfg.cost_bps = a.num("cost-bps", cfg.cost_bps);
     cfg.tax_rate = a.num("tax", cfg.tax_rate);
     std::map<std::string, ta::CryptoAux> aux;
-    if (a.has("funding-dir")) {
+    if (a.has("funding-dir") && !a.has("replicate")) {
         for (const auto& [asset, s] : md.universe()) {
             const auto f = fs::path(a.str("funding-dir")) / (asset + ".csv");
             if (fs::exists(f)) aux[asset].funding = ta::load_dated_values(f.string());
@@ -194,15 +199,26 @@ int run_d1(const cli::Args& a) {
     const ta::Series bars = ta::load_series(a.pos(1));
     ta::D1Config cfg;
     ta::apply_settings(config_of(a), cfg);
-    cfg.cost_points = a.num("cost-points", cfg.cost_points);
+    cfg.cost_frac = a.num("cost-frac", cfg.cost_frac);
+    cfg.slippage_points = a.num("slippage-points", cfg.slippage_points);
+    ta::Series spot;
+    if (a.has("spot")) spot = ta::load_series(a.str("spot"));
     if (a.has("skip-days")) {
         for (const auto& d : ta::load_symbol_list(a.str("skip-days"))) cfg.skip_days.insert(d);
     }
-    const auto r = ta::run_d1_backtest(bars, cfg, a.num("equity", 2e6), a.str("start"), a.str("end"));
+    const auto r = ta::run_d1_backtest(bars, cfg, a.num("equity", 2e6), a.str("start"), a.str("end"),
+                                       spot.empty() ? nullptr : &spot);
+    if (spot.empty()) std::cout << "note: signal from futures bars; pass --spot to avoid roll-day carry\n";
     print_metrics(r.metrics);
     std::cout << "mean move      " << r.mean_move_points << " points in signal direction (t=" << r.move_t
-              << ")\ncost           " << r.cost_points << " points round trip\nswitch-on gate "
-              << (r.passes_gate ? "PASS" : "FAIL") << " (>= 2x cost, t > 3, >= 250 trades)\n";
+              << ")\ncost           " << r.cost_points << " points round trip (mean)\nslope beta     "
+              << r.beta << " (t=" << r.beta_t << "), archive below " << cfg.min_beta << '\n';
+    for (const auto& [year, bn] : r.beta_by_year) {
+        std::cout << "  " << year << ": beta " << bn.first << " (" << bn.second << " days)\n";
+    }
+    std::cout << "2022+ net      " << r.net_points_2022_on << " points per trade\nswitch-on gate "
+              << (r.passes_gate ? "PASS" : "FAIL")
+              << " (>= 2x cost, t > 3, >= 250 trades, beta >= min, 2022+ net > 0)\n";
     write_outputs(a, r.trades, r.equity_curve);
     return 0;
 }
@@ -231,7 +247,7 @@ int run_options(const cli::Args& a) {
 
 int main(int argc, char** argv) {
     try {
-        const cli::Args a(argc, argv, 1, {"gate", "vol-red", "blackout"});
+        const cli::Args a(argc, argv, 1, {"gate", "vol-red", "blackout", "replicate"});
         if (a.positional().empty()) {
             std::cerr << kUsage;
             return 2;

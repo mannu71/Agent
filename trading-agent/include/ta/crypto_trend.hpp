@@ -22,11 +22,23 @@ struct CryptoTrendConfig {
     std::size_t vol_n = 90;
     double periods_per_year = 365;
     double rebalance_band = 0.20;      // vol-only changes trade when |current - target| > 20% of target
-    double cost_bps = 10;              // per side on traded notional; stress 25 and 50
+    double cost_bps = 25;              // per side; 10 = the paper (replication), 50 = stress
     double tax_rate = 0.312;           // worst case: 30% + 4% cess on every realised gain, no offset
-    double funding_annual_default = 0; // used on days without a funding observation
-    RiskConfig risk;                   // sleeve drawdown halve/off (blueprint stops)
+    double funding_annual_default = 0.10;  // used on days without a funding observation (BIS carry)
+    RiskConfig risk;                   // sleeve drawdown halve/off
     RegimeConfig regime;               // crowding gate threshold
+
+    // A healthy trend sleeve at ~15% volatility has a median 3-year drawdown near 19% and
+    // a 90th percentile near 33% (Rej et al.), so the blueprint's -7.5%/-15% would latch
+    // off a working sleeve about half the time. Halve at -20%, off at -30% (human review).
+    CryptoTrendConfig() {
+        risk.drawdown_halve = 0.20;
+        risk.drawdown_off = 0.30;
+    }
+
+    // Reproduce-first mode: the paper's 10 bps, no funding, no drawdown or crowding overlay,
+    // so trade counts and the drawdown can be compared with "Catching Crypto Trends".
+    void replication_mode();
 };
 
 // Per-asset auxiliary data: funding is the day's total funding rate as a fraction

@@ -100,6 +100,12 @@ void apply_settings(const Config& c, A2Config& a2) {
     config_set(c, "a2.min_history_events", a2.min_history_events);
     config_set(c, "a2.max_entries_per_day", a2.max_entries_per_day);
     config_set(c, "a2.max_hold_days", a2.exits.max_hold_days);
+    config_set(c, "a2.weakness_time", a2.weakness_time);
+    config_set(c, "a2.require_catalyst", a2.require_catalyst);
+    config_set(c, "a2.skip_after_gap_day", a2.skip_after_gap_day);
+    config_set(c, "a2.min_rv", a2.min_rv);
+    config_set(c, "a2.partial_mode", a2.partial_mode);
+    a2.apply_partial_mode();  // validates the mode
 }
 
 void apply_settings(const Config& c, CryptoTrendConfig& b) {
@@ -118,7 +124,9 @@ void apply_settings(const Config& c, D1Config& d1) {
     config_set(c, "d1.pct_threshold", d1.pct_threshold);
     config_set(c, "d1.stop_frac", d1.stop_frac);
     config_set(c, "d1.lot_size", d1.lot_size);
-    config_set(c, "d1.cost_points", d1.cost_points);
+    config_set(c, "d1.cost_frac", d1.cost_frac);
+    config_set(c, "d1.slippage_points", d1.slippage_points);
+    config_set(c, "d1.min_beta", d1.min_beta);
     config_set(c, "d1.min_sleeve_equity", d1.min_sleeve_equity);
 }
 
@@ -197,7 +205,12 @@ std::vector<std::pair<std::string, std::string>> default_settings() {
                            {"a2.approve_pct", f(a2.approve_pct)},
                            {"a2.min_history_events", std::to_string(a2.min_history_events)},
                            {"a2.max_entries_per_day", std::to_string(a2.max_entries_per_day)},
-                           {"a2.max_hold_days", std::to_string(a2.exits.max_hold_days)}});
+                           {"a2.max_hold_days", std::to_string(a2.exits.max_hold_days)},
+                           {"a2.weakness_time", a2.weakness_time},
+                           {"a2.require_catalyst", a2.require_catalyst ? "1" : "0"},
+                           {"a2.skip_after_gap_day", a2.skip_after_gap_day ? "1" : "0"},
+                           {"a2.min_rv", f(a2.min_rv)},
+                           {"a2.partial_mode", a2.partial_mode}});
     risk("b.", b.risk);
     out.insert(out.end(), {{"b.vol_target", f(b.vol_target)},
                            {"b.asset_cap", f(b.asset_cap)},
@@ -209,7 +222,9 @@ std::vector<std::pair<std::string, std::string>> default_settings() {
     out.insert(out.end(), {{"d1.pct_threshold", f(d1.pct_threshold)},
                            {"d1.stop_frac", f(d1.stop_frac)},
                            {"d1.lot_size", f(d1.lot_size)},
-                           {"d1.cost_points", f(d1.cost_points)},
+                           {"d1.cost_frac", f(d1.cost_frac)},
+                           {"d1.slippage_points", f(d1.slippage_points)},
+                           {"d1.min_beta", f(d1.min_beta)},
                            {"d1.min_sleeve_equity", f(d1.min_sleeve_equity)},
                            {"c.budget_frac", f(o.budget_frac)},
                            {"c.cost_per_leg_lot", f(o.cost_per_leg_lot)}});

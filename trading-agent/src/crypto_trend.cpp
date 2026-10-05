@@ -35,6 +35,15 @@ double value_before(const std::map<std::string, double>& m, const std::string& d
 
 }  // namespace
 
+void CryptoTrendConfig::replication_mode() {
+    cost_bps = 10;
+    funding_annual_default = 0;
+    tax_rate = 0;
+    risk.drawdown_halve = 2.0;  // unreachable: no overlay
+    risk.drawdown_off = 2.0;
+    regime.funding_red_annual = std::numeric_limits<double>::infinity();
+}
+
 CryptoTrendEngine::CryptoTrendEngine(const MarketData& md, CryptoTrendConfig cfg,
                                      std::map<std::string, CryptoAux> aux, double initial_equity)
     : md_(md), cfg_(std::move(cfg)), aux_(std::move(aux)), risk_(cfg_.risk), cash_(initial_equity),

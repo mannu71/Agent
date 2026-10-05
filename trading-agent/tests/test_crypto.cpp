@@ -181,3 +181,30 @@ TEST(crypto_exit_tests_yesterdays_stop) {
     for (const auto& d : md.dates()) eng.step(d);
     CHECK(eng.exposure("BTC") > 0);
 }
+
+TEST(crypto_defaults_and_replication_mode) {
+    const ta::CryptoTrendConfig def;
+    CHECK_NEAR(def.cost_bps, 25, 1e-12);
+    CHECK_NEAR(def.funding_annual_default, 0.10, 1e-12);
+    CHECK_NEAR(def.risk.drawdown_halve, 0.20, 1e-12);
+    CHECK_NEAR(def.risk.drawdown_off, 0.30, 1e-12);
+
+    // In replication mode a deep drawdown never switches the sleeve off.
+    ta::Series s;
+    double c = 100;
+    for (int k = 0; k < 200; ++k) {
+        c *= (k < 120 ? (k % 2 ? 1.01 : 0.99) : 1.02);
+        s.push_back({th::iso_day(k), c, c, c, c, 1});
+    }
+    for (int k = 200; k < 203; ++k) {
+        c *= 0.80;
+        s.push_back({th::iso_day(k), c, c, c, c, 1});
+    }
+    const ta::MarketData md({{"BTC", s}});
+    ta::CryptoTrendConfig rep;
+    rep.lookbacks = {150};
+    rep.replication_mode();
+    const auto r = ta::run_crypto_backtest(md, rep, {}, 1e6);
+    CHECK(r.final_risk_state != ta::RiskState::Off);
+    CHECK(r.tax_paid == 0 && r.funding_paid == 0);
+}

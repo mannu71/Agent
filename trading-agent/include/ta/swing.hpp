@@ -27,6 +27,9 @@ struct ExitRules {
     bool runner_atr = false;
     std::size_t runner_atr_n = 42;
     double runner_atr_k = 10;
+    // Profit targets as (R multiple, fraction of the initial size), filled on daily bars
+    // from the day after entry: at the open if it gaps through, else at the target price.
+    std::vector<std::pair<double, double>> r_targets;
 };
 
 struct SwingPosition {
@@ -39,6 +42,7 @@ struct SwingPosition {
     bool partial_done = false;
     bool exit_next_open = false;
     double high_close = 0;  // highest close since entry, for the ATR runner trail
+    int targets_done = 0;   // profit targets already filled
 
     KvRecord to_kv() const;
     static SwingPosition from_kv(const KvRecord& r);

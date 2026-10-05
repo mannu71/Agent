@@ -68,6 +68,7 @@ Scenario gap_scenario(double close_1520_mult, bool with_catalyst = true, const s
 ta::A2Config test_config() {
     ta::A2Config cfg;
     cfg.min_history_events = 0;  // a single event can be approved in a unit test
+    cfg.min_rv = 0;              // the scenario has no prior-day intraday bars
     return cfg;
 }
 
@@ -95,6 +96,7 @@ TEST(a2_entry_rules) {
     CHECK(!ta::simulate_entry(ev, runaway.data(), runaway.size(), cfg).filled);
 
     // Trigger after the entry window: no fill.
+    cfg.window_end = "10:15";
     const std::vector<ta::Bar> late = {{"2024-01-01 09:15", 108, 109, 106.5, 108.8, 1},
                                        {"2024-01-01 10:15", 108.8, 110, 108.5, 109.5, 1}};
     CHECK(ta::simulate_entry(ev, late.data(), late.size(), cfg).reason == "not_triggered");
@@ -150,7 +152,9 @@ TEST(a2_weak_at_1520_exits_at_close) {
 TEST(a2_warmup_approves_nothing) {
     Scenario sc = gap_scenario(1.11);
     const ta::MarketData md(sc.daily);
-    const auto r = ta::run_a2_backtest(md, ta::A2Config{}, sc.in, 1e6);  // needs 30 prior events
+    ta::A2Config cfg;
+    cfg.min_rv = 0;
+    const auto r = ta::run_a2_backtest(md, cfg, sc.in, 1e6);  // needs 30 prior events
     CHECK(r.events.size() == 1 && r.events[0].status == "warmup");
     CHECK(r.portfolio.trades.empty());
 }
@@ -177,4 +181,74 @@ TEST(a2_save_load_round_trip) {
     }
     CHECK_NEAR(equity, full.equity(), 1e-6);
     CHECK(events == full.events().size());
+}
+
+TEST(a2_catalyst_switch_runs_any_gap_baseline) {
+    Scenario sc = gap_scenario(1.11, false);  // no filing
+    const ta::MarketData md(sc.daily);
+    ta::A2Config cfg = test_config();
+    CHECK(ta::run_a2_backtest(md, cfg, sc.in, 1e6).events.empty());
+    cfg.require_catalyst = false;  // the paper's catalyst-free universe
+    CHECK(ta::run_a2_backtest(md, cfg, sc.in, 1e6).events.size() == 1);
+}
+
+TEST(a2_skips_gap_after_gap_day) {
+    Scenario sc = gap_scenario(1.11);
+    auto& s = sc.daily["GAPCO"];
+    s[kGapDay - 1].open = s[kGapDay - 2].close * 1.07;  // the day before also gapped 7%
+    const ta::MarketData md(sc.daily);
+    ta::A2Config cfg = test_config();
+    CHECK(ta::run_a2_backtest(md, cfg, sc.in, 1e6).events.empty());
+    cfg.skip_after_gap_day = false;
+    CHECK(ta::run_a2_backtest(md, cfg, sc.in, 1e6).events.size() == 1);
+}
+
+TEST(a2_relative_volume_gate) {
+    auto with_prior_volume = [](double first_bar_volume) {
+        Scenario sc = gap_scenario(1.11);
+        const std::string prev = th::iso_day(kGapDay - 1);
+        ta::Series bars = day_bars(prev, {}, sc.pc);
+        bars[0].volume = first_bar_volume;
+        for (auto& b : bars) sc.intraday.bars["GAPCO"].push_back(b);
+        sc.intraday.finalize();
+        return sc;
+    };
+    ta::A2Config cfg = test_config();
+    cfg.min_rv = 1.0;
+    Scenario quiet = with_prior_volume(10000);   // gap-day first bar 50,000 -> RV 5
+    const ta::MarketData md1(quiet.daily);
+    const auto r1 = ta::run_a2_backtest(md1, cfg, quiet.in, 1e6);
+    CHECK(r1.events.size() == 1);
+    if (!r1.events.empty()) CHECK_NEAR(r1.events[0].rv, 5.0, 1e-9);
+    Scenario busy = with_prior_volume(100000);   // RV 0.5 -> gated out
+    const ta::MarketData md2(busy.daily);
+    CHECK(ta::run_a2_backtest(md2, cfg, busy.in, 1e6).events.empty());
+}
+
+TEST(a2_paper_targets_mode) {
+    Scenario sc = gap_scenario(1.11);
+    const ta::MarketData md(sc.daily);
+    ta::A2Config cfg = test_config();
+    cfg.partial_mode = "targets";
+    std::vector<ta::KvRecord> events;
+    ta::A2Engine eng(md, cfg, sc.in, 1e6);
+    ta::StepContext ctx;
+    ctx.events = &events;
+    for (const auto& d : md.dates()) {
+        if (d >= th::iso_day(kGapDay - 1)) eng.step(d, ctx);
+    }
+    int targets = 0;
+    for (const auto& e : events) targets += e.type == "fill" && e.str("reason") == "target";
+    CHECK(targets == 4);  // 25% each at 2R, 4R, 8R and 10R
+    const auto closed = eng.drain_closed();
+    CHECK(closed.size() == 1 && closed[0].exit_reason == "target");
+    bool threw = false;
+    try {
+        ta::A2Config bad;
+        bad.partial_mode = "fifths";
+        bad.apply_partial_mode();
+    } catch (const std::exception&) {
+        threw = true;
+    }
+    CHECK(threw);
 }

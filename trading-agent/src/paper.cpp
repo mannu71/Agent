@@ -129,7 +129,7 @@ struct PaperAccount::Impl {
 
     // Data. Engines keep references, so these must outlive them.
     std::unique_ptr<MarketData> equity_md, crypto_md;
-    Series index, nifty_fut;
+    Series index, nifty_fut, nifty_spot;
     std::map<std::string, double> vix;
     EventCalendar events;
     bool has_events = false;
@@ -237,7 +237,8 @@ struct PaperAccount::Impl {
             if (!str_or(cfg, "data.d1_skip_days").empty()) {
                 for (const auto& d : load_symbol_list(str_or(cfg, "data.d1_skip_days"))) cd.skip_days.insert(d);
             }
-            d1 = std::make_unique<D1Engine>(nifty_fut, cd, d1_cap);
+            if (!str_or(cfg, "data.nifty_spot").empty()) nifty_spot = load_series(str_or(cfg, "data.nifty_spot"));
+            d1 = std::make_unique<D1Engine>(nifty_fut, cd, d1_cap, nifty_spot.empty() ? nullptr : &nifty_spot);
         }
 
         // Restore state.
@@ -315,7 +316,8 @@ void PaperAccount::init(const std::string& dir, double capital, const std::strin
         << "account.start = " << start << "\n\n# data paths (empty = sleeve disabled)\n";
     for (const char* k : {"data.equity_dir", "data.exclusions", "data.index", "data.vix", "data.events",
                           "data.intraday_dir", "data.catalysts", "data.bands", "data.crypto_dir",
-                          "data.crypto_funding_dir", "data.crypto_oi_dir", "data.nifty_fut", "data.d1_skip_days"}) {
+                          "data.crypto_funding_dir", "data.crypto_oi_dir", "data.nifty_fut", "data.nifty_spot",
+                          "data.d1_skip_days"}) {
         const auto it = settings.find(k);
         out << k << " = " << (it == settings.end() ? "" : it->second) << "\n";
     }
@@ -330,7 +332,7 @@ void PaperAccount::init(const std::string& dir, double capital, const std::strin
         const auto rb = rulebook.find(k);
         out << k << " = " << (it != settings.end() ? it->second : rb != rulebook.end() ? rb->second : v) << "\n";
     }
-    out << "\n# kill rules\nkill.b_backtest_max_dd = 0.19\nkill.ic_target = 0.03\n";
+    out << "\n# kill rules\nkill.b_backtest_max_dd = 0.20\nkill.ic_target = 0.03\n";
     for (const auto& [k, v] : settings) {
         if (k.rfind("paper.", 0) == 0) out << k << " = " << v << "\n";
     }
@@ -407,7 +409,7 @@ std::string PaperAccount::run(const std::string& until) {
         }
         if (p.b) {
             apply("B", &p.b->risk(),
-                  b_kill_rule(p.b->risk().drawdown(), num_or(p.cfg, "kill.b_backtest_max_dd", 0.19)), date);
+                  b_kill_rule(p.b->risk().drawdown(), num_or(p.cfg, "kill.b_backtest_max_dd", 0.20)), date);
         }
         if (p.d1) apply("D1", &p.d1->risk(), d1_kill_rule(of_sleeve(history, "D1", since("d1"))), date);
     };
