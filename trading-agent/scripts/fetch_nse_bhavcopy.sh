@@ -16,7 +16,9 @@ mkdir -p "$out"
 ua="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
 d=$start
 while [ "$(date -d "$d" +%Y%m%d)" -le "$(date -d "$end" +%Y%m%d)" ]; do
-  if [ "$(date -d "$d" +%u)" -le 5 ]; then
+  # Weekends are skipped unless ALL_DAYS=1: NSE holds special weekend sessions (Budget
+  # Saturdays, Muhurat trading), and a missing session distorts the derived adjustments.
+  if [ "${ALL_DAYS:-0}" = 1 ] || [ "$(date -d "$d" +%u)" -le 5 ]; then
     ymd=$(date -d "$d" +%Y%m%d)
     if [ -e "$out/.done_$ymd" ]; then d=$(date -d "$d + 1 day" +%Y-%m-%d); continue; fi
     if [ "$ymd" -ge 20240708 ]; then

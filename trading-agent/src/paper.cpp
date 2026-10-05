@@ -617,6 +617,26 @@ std::string PaperAccount::scorecard(std::size_t horizon, std::size_t top_k) cons
         prec += d.precision_at_k;
         base += d.base_rate;
     }
+    // Whole-history view: mean rank IC with its t-statistic and the top-k edge over the base
+    // rate, overall and by year (non-overlapping caveat: with horizon h > 1 daily ICs overlap,
+    // so the plain t overstates significance by roughly sqrt(h)).
+    {
+        std::map<std::string, std::vector<double>> ic_by_year, edge_by_year;
+        std::vector<double> ics, edges;
+        for (const auto& d : days) {
+            ics.push_back(d.rank_ic);
+            edges.push_back(d.precision_at_k - d.base_rate);
+            ic_by_year[d.date.substr(0, 4)].push_back(d.rank_ic);
+            edge_by_year[d.date.substr(0, 4)].push_back(d.precision_at_k - d.base_rate);
+        }
+        o << "all days: mean rank IC " << mean(ics) << " (t " << t_stat(ics) << ", overlap-adjusted t "
+          << t_stat(ics) / std::sqrt(static_cast<double>(horizon)) << "); top-" << top_k
+          << " hit rate minus base rate " << mean(edges) << "\n";
+        for (const auto& [y, v] : ic_by_year) {
+            o << "  " << y << ": IC " << mean(v) << "  top-k edge " << mean(edge_by_year[y]) << "  (" << v.size()
+              << " days)\n";
+        }
+    }
     const double ic60 = rolling_mean_ic(days, 60);
     o << "rank IC  20d " << rolling_mean_ic(days, 20) << "  60d " << ic60 << "  120d " << rolling_mean_ic(days, 120)
       << "\nprecision@" << top_k << " " << prec / days.size() << " vs base rate " << base / days.size()

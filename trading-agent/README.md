@@ -59,17 +59,32 @@ All inputs are plain CSV files; the agent never fetches anything itself.
 | Nifty near-month future, continuous 1- or 5-minute bars | intraday OHLCV | D1 (traded prices) |
 | Nifty spot index, 1- or 5-minute bars | intraday OHLCV | D1 signal (avoids roll-day carry) |
 
-Helpers (untested here because the network is blocked; check one request by hand first):
+Real data (all fetchers tested against the live sources in October 2026; run from `trading-agent/`):
 
 ```sh
-scripts/fetch_nse_bhavcopy.sh 2017-01-01 2026-10-01 raw/bhav     # then:
-./build/ta_ingest bhavcopy raw/bhav data/nse --actions corporate_actions.csv --non-eq-out data/t2t.csv
-scripts/fetch_delta_candles.py BTCUSD 2019-01-01 2026-10-01 data/crypto/BTC.csv
+# NSE cash market, 2016 onwards (~2,660 sessions, ~670 MB raw). ALL_DAYS=1 also tries
+# weekends so special sessions (Budget Saturdays, Muhurat trading) are not missed.
+ALL_DAYS=1 scripts/fetch_nse_bhavcopy.sh 2016-01-01 2026-10-05 data/raw/bhav
+./build/ta_ingest bhavcopy data/raw/bhav data/nse_unadj --non-eq-out data/t2t.csv
+# Splits, bonuses and consolidations from NSE's corporate-actions API, checked against the
+# unadjusted prices (contradicted records dropped, missing clean-ratio ones inferred):
+scripts/fetch_nse_actions.py 2016 2026 data/corporate_actions.csv --check data/nse_unadj --infer
+./build/ta_ingest bhavcopy data/raw/bhav data/nse --actions data/corporate_actions.csv --non-eq-out data/t2t.csv
+scripts/fetch_yahoo.py ^NSEI data/index/nifty50.csv              # Nifty 50 daily since 2007
+scripts/fetch_yahoo.py ^INDIAVIX data/index/india_vix.csv --value
+scripts/fetch_yahoo.py ^NSEI data/index/nifty50_5m.csv --interval 5m   # last ~60 days only
+scripts/fetch_binance_daily.py BTCUSDT data/crypto/BTC.csv        # research history, Aug 2017+
+scripts/fetch_delta_funding.py BTCUSD 2023-12-01 data/funding/BTC.csv   # Delta India, Dec 2023+
 ```
 
-Bhavcopy includes every stock that traded each day, so the ingested universe is free of
-survivorship bias. Corporate actions are `symbol,ex_date,factor` (1:1 bonus = 0.5). Symbol
-renames are not merged automatically.
+`data/` is git-ignored. NSE's bhavcopy `PREVCLOSE` is **not** adjusted for splits, so
+corporate actions must come from the API above. Demergers and capital returns are not in that
+feed; the residual >30% overnight gaps in liquid stocks were reviewed and adjusted out via a manual
+list (`data/corporate_actions_manual.csv`, concatenated with the API file). ETFs are excluded
+from stock sleeves by symbol pattern (`data/etf_symbols.txt`). Not freely available: intraday
+history for NSE stocks or Nifty futures (A2 and D1 need a paid feed such as Kite Connect), and
+Delta India price history before its December 2023 launch. Crypto prices are in USD; the sleeve's
+rupee figures apply USD returns to INR capital and ignore the exchange rate.
 
 ## Backtests
 

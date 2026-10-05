@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <cctype>
-#include <cmath>
 #include <filesystem>
 #include <fstream>
 #include <sstream>
@@ -57,7 +56,6 @@ std::string normalize_date(const std::string& raw) {
 
 struct Columns {
     int symbol = -1, series = -1, date = -1, open = -1, high = -1, low = -1, close = -1, volume = -1;
-    int prev = -1;  // optional
     bool complete() const {
         return symbol >= 0 && series >= 0 && date >= 0 && open >= 0 && high >= 0 && low >= 0 &&
                close >= 0 && volume >= 0;
@@ -76,7 +74,6 @@ Columns detect_columns(const std::vector<std::string>& header) {
         else if (h == "LOW" || h == "LWPRIC" || h == "LOW_PRICE") c.low = k;
         else if (h == "CLOSE" || h == "CLSPRIC" || h == "CLOSE_PRICE") c.close = k;
         else if (h == "TOTTRDQTY" || h == "TTLTRADGVOL" || h == "TTL_TRD_QNTY") c.volume = k;
-        else if (h == "PREVCLOSE" || h == "PRVSCLSGPRIC" || h == "PREV_CLOSE") c.prev = k;
     }
     return c;
 }
@@ -107,9 +104,6 @@ std::vector<BhavRow> parse_bhavcopy(const std::string& path) {
             r.series = upper(f[c.series]);
             r.bar = Bar{normalize_date(f[c.date]), std::stod(f[c.open]), std::stod(f[c.high]),
                         std::stod(f[c.low]), std::stod(f[c.close]), std::stod(f[c.volume])};
-            if (c.prev >= 0 && c.prev < static_cast<int>(f.size()) && !f[c.prev].empty()) {
-                r.prev_close = std::stod(f[c.prev]);
-            }
             rows.push_back(std::move(r));
         } catch (const std::invalid_argument&) {
             throw std::runtime_error(path + ":" + std::to_string(n) + ": bad number");
@@ -150,15 +144,10 @@ void apply_corporate_actions(Universe& u, const std::vector<CorporateAction>& ac
     }
 }
 
-IngestResult ingest_bhavcopy_dir(const std::string& dir, const std::set<std::string>& series,
-                                 double action_threshold) {
+IngestResult ingest_bhavcopy_dir(const std::string& dir, const std::set<std::string>& series) {
     IngestResult r;
-    struct Day {
-        bool is_eq = false;
-        Bar bar;
-        double prev_close = 0;
-    };
-    std::map<std::string, std::map<std::string, Day>> acc;  // symbol -> date -> row
+    // symbol -> date -> (is_eq, bar)
+    std::map<std::string, std::map<std::string, std::pair<bool, Bar>>> acc;
     std::vector<std::filesystem::path> files;
     for (const auto& e : std::filesystem::directory_iterator(dir)) {
         if (e.path().extension() == ".csv" || e.path().extension() == ".CSV") files.push_back(e.path());
@@ -170,19 +159,15 @@ IngestResult ingest_bhavcopy_dir(const std::string& dir, const std::set<std::str
             if (!series.count(row.series)) continue;
             ++r.rows;
             const bool is_eq = row.series == "EQ";
-            Day& slot = acc[row.symbol][row.bar.date];
-            if (slot.bar.date.empty() || (is_eq && !slot.is_eq)) slot = {is_eq, row.bar, row.prev_close};
+            auto& slot = acc[row.symbol][row.bar.date];
+            if (slot.second.date.empty() || (is_eq && !slot.first)) slot = {is_eq, row.bar};
         }
     }
     for (auto& [sym, days] : acc) {
         Series& s = r.universe[sym];
-        for (auto& [date, d] : days) {
-            if (!s.empty() && d.prev_close > 0 && s.back().close > 0) {
-                const double factor = d.prev_close / s.back().close;
-                if (std::fabs(factor - 1.0) > action_threshold) r.derived_actions.push_back({sym, date, factor});
-            }
-            s.push_back(d.bar);
-            if (!d.is_eq) r.non_eq_days.emplace_back(sym, date);
+        for (auto& [date, v] : days) {
+            s.push_back(v.second);
+            if (!v.first) r.non_eq_days.emplace_back(sym, date);
         }
     }
     return r;

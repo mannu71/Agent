@@ -16,7 +16,6 @@ struct BhavRow {
     std::string symbol;
     std::string series;
     Bar bar;
-    double prev_close = 0;  // exchange's previous close, adjusted for corporate actions (0 if absent)
 };
 
 // Parses one NSE cash-market bhavcopy CSV. Recognises the legacy format
@@ -36,10 +35,6 @@ void apply_corporate_actions(Universe& u, const std::vector<CorporateAction>& ac
 
 struct IngestResult {
     Universe universe;
-    // Split/bonus/consolidation factors inferred from the exchange's adjusted previous close:
-    // factor = PREVCLOSE(ex-date) / CLOSE(prior session) when it differs from 1 by more
-    // than the threshold. Not applied until apply_corporate_actions() is called.
-    std::vector<CorporateAction> derived_actions;
     // (symbol, date) rows whose series was not "EQ", e.g. trade-for-trade BE/BZ.
     std::vector<std::pair<std::string, std::string>> non_eq_days;
     std::size_t files = 0;
@@ -48,8 +43,7 @@ struct IngestResult {
 
 // Reads every *.csv bhavcopy in `dir`, keeps rows whose series is in `series`,
 // and builds per-symbol daily series. Duplicate (symbol, date) rows keep the EQ row.
-IngestResult ingest_bhavcopy_dir(const std::string& dir, const std::set<std::string>& series,
-                                 double action_threshold = 0.02);
+IngestResult ingest_bhavcopy_dir(const std::string& dir, const std::set<std::string>& series);
 
 void write_series(const std::string& path, const Series& s);
 void write_universe(const std::string& dir, const Universe& u);

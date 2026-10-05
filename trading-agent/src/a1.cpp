@@ -115,7 +115,6 @@ void A1Engine::enter(const std::string& date, const StepContext& ctx) {
 void A1Engine::screen_for_tomorrow(const std::string& date, std::vector<KvRecord>* events) {
     pending_.clear();
     last_scores_.clear();
-    if (risk_.state() == RiskState::Off) return;
 
     std::vector<SymbolView> views;
     for (const auto& [sym, s] : md_.universe()) {
@@ -123,7 +122,10 @@ void A1Engine::screen_for_tomorrow(const std::string& date, std::vector<KvRecord
         std::size_t i = 0;
         if (md_.bar(sym, date, &i)) views.push_back({sym, &s, i});
     }
+    // Scores are logged even while the sleeve is off: the screener's rank IC is the evidence
+    // a human needs before resetting it.
     for (const auto& r : score_universe(views, cfg_.screen)) last_scores_.emplace_back(r.symbol, r.score);
+    if (risk_.state() == RiskState::Off) return;
     for (auto& c : screen(views, cfg_.screen)) {
         if (!book_.holds(c.symbol)) pending_.push_back(std::move(c));
     }
