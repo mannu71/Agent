@@ -110,6 +110,7 @@ private:
     double last_equity_;
     std::string last_date_;
     std::string primed_until_;
+    bool priming_ = false;  // warm-up: signals advance but entries are not counted
 };
 
 struct CryptoBacktestResult {

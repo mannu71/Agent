@@ -73,7 +73,7 @@ bool CryptoTrendEngine::update_signals(const std::string& asset, std::size_t i) 
         } else if (s[i].close >= up) {
             sig.long_ = true;
             sig.stop = mid;
-            ++entries_[n];
+            if (!priming_) ++entries_[n];
             changed = true;
         }
     }
@@ -95,6 +95,7 @@ double CryptoTrendEngine::target_weight(const std::string& asset, std::size_t i)
 }
 
 void CryptoTrendEngine::prime(const std::string& date) {
+    priming_ = true;
     for (const auto& d : md_.dates()) {
         if (d >= date) break;
         if (!primed_until_.empty() && d <= primed_until_) continue;
@@ -104,6 +105,7 @@ void CryptoTrendEngine::prime(const std::string& date) {
         }
         primed_until_ = d;
     }
+    priming_ = false;
 }
 
 double CryptoTrendEngine::mark(const std::string& date) const {

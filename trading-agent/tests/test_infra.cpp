@@ -132,3 +132,26 @@ TEST(intraday_day_index) {
     CHECK(ta::time_of(s[1].date) == "09:20");
     CHECK_NEAR(ta::daily_closes(s).at("2024-01-01"), 2, 1e-12);
 }
+
+TEST(bhavcopy_derives_bonus_from_adjusted_prev_close) {
+    // 1:1 bonus on day 2: NSE's PREVCLOSE is the adjusted 100, the actual prior close 200.
+    const auto dir = th::temp_dir("bhav_ca");
+    std::ofstream(dir + "/d1.csv")
+        << "SYMBOL,SERIES,OPEN,HIGH,LOW,CLOSE,LAST,PREVCLOSE,TOTTRDQTY,TOTTRDVAL,TIMESTAMP,TOTALTRADES,ISIN,\n"
+           "ABC,EQ,198,202,197,200,200,199,1000,200000,01-JAN-2024,10,X,\n";
+    std::ofstream(dir + "/d2.csv")
+        << "SYMBOL,SERIES,OPEN,HIGH,LOW,CLOSE,LAST,PREVCLOSE,TOTTRDQTY,TOTTRDVAL,TIMESTAMP,TOTALTRADES,ISIN,\n"
+           "ABC,EQ,101,103,99,102,102,100,2000,204000,02-JAN-2024,10,X,\n";
+    std::ofstream(dir + "/d3.csv")
+        << "SYMBOL,SERIES,OPEN,HIGH,LOW,CLOSE,LAST,PREVCLOSE,TOTTRDQTY,TOTTRDVAL,TIMESTAMP,TOTALTRADES,ISIN,\n"
+           "ABC,EQ,102,104,101,103,103,102,2000,206000,03-JAN-2024,10,X,\n";
+    auto r = ta::ingest_bhavcopy_dir(dir, {"EQ"});
+    CHECK(r.derived_actions.size() == 1);
+    if (r.derived_actions.size() != 1) return;
+    CHECK(r.derived_actions[0].ex_date == "2024-01-02");
+    CHECK_NEAR(r.derived_actions[0].factor, 0.5, 1e-12);
+    ta::apply_corporate_actions(r.universe, r.derived_actions);
+    CHECK_NEAR(r.universe["ABC"][0].close, 100, 1e-12);
+    CHECK_NEAR(r.universe["ABC"][0].volume, 2000, 1e-12);
+    CHECK_NEAR(r.universe["ABC"][1].close, 102, 1e-12);
+}
