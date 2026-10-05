@@ -68,10 +68,26 @@ ta::Config config_of(const cli::Args& a) {
     return c;
 }
 
+// Risk keys are written in active-book units (the rulebook's). Convert them exactly as
+// the paper runner does, treating --equity as this sleeve's capital, so a backtest
+// validates the same risk that is paper-traded.
+void sleeve_units(const ta::Config& c, ta::RiskConfig& r, double sleeve_capital, bool is_a2) {
+    ta::Allocation alloc;
+    ta::apply_settings(c, alloc);
+    const double share = is_a2 ? (alloc.a2 > 0 ? alloc.a2 : alloc.reserve) : alloc.a1;
+    if (share <= 0) throw std::runtime_error("allocation share for this sleeve is zero");
+    const double active_book = sleeve_capital * alloc.active_share() / share;
+    ta::to_sleeve_units(r, active_book, sleeve_capital);
+    std::cout << "risk units     active book " << std::fixed << std::setprecision(0) << active_book
+              << " -> " << std::setprecision(4) << r.risk_per_trade * 100 << "% of sleeve per trade\n";
+}
+
 int run_a1(const cli::Args& a) {
     const ta::MarketData md(ta::load_universe(a.pos(1)));
+    const ta::Config conf = config_of(a);
     ta::A1Config cfg;
-    ta::apply_settings(config_of(a), cfg);
+    ta::apply_settings(conf, cfg);
+    sleeve_units(conf, cfg.risk, a.num("equity", 1e6), false);
     if (a.has("cost-rt")) cfg.cost.buy_frac = cfg.cost.sell_frac = a.num("cost-rt", 0.005) / 2;
     const ta::ExclusionList excl = a.has("exclude") ? ta::ExclusionList::load(a.str("exclude")) : ta::ExclusionList{};
     ta::Series index;
@@ -127,8 +143,10 @@ int run_a1(const cli::Args& a) {
 
 int run_a2(const cli::Args& a) {
     const ta::MarketData md(ta::load_universe(a.pos(1)));
+    const ta::Config conf = config_of(a);
     ta::A2Config cfg;
-    ta::apply_settings(config_of(a), cfg);
+    ta::apply_settings(conf, cfg);
+    sleeve_units(conf, cfg.risk, a.num("equity", 1e6), true);
     if (a.has("cost-rt")) cfg.cost.buy_frac = cfg.cost.sell_frac = a.num("cost-rt", 0.005) / 2;
     ta::IntradayData intra;
     if (!a.has("intraday")) throw std::runtime_error("a2 needs --intraday DIR");

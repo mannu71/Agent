@@ -53,10 +53,13 @@ bool CryptoTrendEngine::update_signals(const std::string& asset, std::size_t i) 
         const double mid = (up + down) / 2.0;
         Signal& sig = signals_[asset][n];
         if (sig.long_) {
-            sig.stop = std::max(sig.stop, mid);
+            // The paper tests today's close against the stop carried from yesterday
+            // (TS_t = max(TS_t-1, Mid_t-1)), then ratchets with today's mid for tomorrow.
             if (s[i].close <= sig.stop) {
                 sig.long_ = false;
                 changed = true;
+            } else {
+                sig.stop = std::max(sig.stop, mid);
             }
         } else if (s[i].close >= up) {
             sig.long_ = true;

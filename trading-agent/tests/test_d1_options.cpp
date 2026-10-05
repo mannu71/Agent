@@ -110,3 +110,20 @@ TEST(options_credit_must_cover_costs) {
     const auto c = ta::check_structure(thin, ta::OptionsConfig{}, ctx);
     CHECK(!c.ok);
 }
+
+TEST(d1_spot_signal_ignores_futures_roll) {
+    // Day 120 is a roll: the new contract opens 3% above the old one's close (carry), while
+    // the spot index is flat. A futures-based signal sees +3% and trades; spot does not.
+    ta::Series fut, spot;
+    double pf = 23000, ps = 23000;
+    for (int k = 0; k < 120; ++k) {
+        add_day(fut, th::iso_day(k), pf, k % 2 ? 0.001 : -0.001, 0.0);
+        add_day(spot, th::iso_day(k), ps, k % 2 ? 0.001 : -0.001, 0.0);
+    }
+    pf *= 1.03;
+    add_day(fut, th::iso_day(120), pf, 0.0, 0.0);
+    add_day(spot, th::iso_day(120), ps, 0.0, 0.0);
+    ta::D1Config cfg;
+    CHECK(ta::run_d1_backtest(fut, cfg, 2e6, th::iso_day(120)).trades.size() == 1);
+    CHECK(ta::run_d1_backtest(fut, cfg, 2e6, th::iso_day(120), "", &spot).trades.empty());
+}

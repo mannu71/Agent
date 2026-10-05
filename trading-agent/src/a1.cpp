@@ -36,7 +36,9 @@ void A1Engine::enter(const std::string& date, const StepContext& ctx) {
     if (ctx.block_new_entries || !pending_allowed_ || !risk_.allows_new_entries(eq_open)) return;
 
     EquityRegime today;
-    if (regime_in_.events) today = evaluate_equity_regime({nullptr, nullptr, regime_in_.events}, date, cfg_.regime);
+    if (regime_in_.events) {
+        today = evaluate_equity_regime({nullptr, nullptr, regime_in_.events, &md_.dates()}, date, cfg_.regime);
+    }
     if (today.event_blackout) return;
 
     const double mult = ctx.risk_multiplier * pending_risk_mult_;
@@ -94,7 +96,8 @@ void A1Engine::screen_for_tomorrow(const std::string& date, std::vector<KvRecord
         if (!book_.holds(c.symbol)) pending_.push_back(std::move(c));
     }
 
-    const EquityRegime reg = evaluate_equity_regime({regime_in_.index, regime_in_.vix, nullptr}, date, cfg_.regime);
+    const EquityRegime reg =
+        evaluate_equity_regime({regime_in_.index, regime_in_.vix, nullptr, nullptr}, date, cfg_.regime);
     pending_allowed_ = reg.allow_new_entries();
     pending_risk_mult_ = reg.risk_multiplier();
 

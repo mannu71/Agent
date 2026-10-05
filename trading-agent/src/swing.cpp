@@ -120,7 +120,8 @@ void SwingBook::manage_at_close(const MarketData& md, const std::string& date, s
         pos.last_close = b->close;
         const double entry = pos.trade.entry_price;
 
-        if (!pos.partial_done && pos.days_held == exits_.partial_day && b->close > entry) {
+        const bool partial_on = exits_.partial_frac > 0 && exits_.partial_day > 0;
+        if (partial_on && !pos.partial_done && pos.days_held == exits_.partial_day && b->close > entry) {
             const auto part = static_cast<long>(std::floor(static_cast<double>(pos.trade.qty) * exits_.partial_frac));
             pos.partial_done = true;
             pos.stop = std::max(pos.stop, entry);

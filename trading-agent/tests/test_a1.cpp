@@ -321,3 +321,35 @@ TEST(a1_regime_red_blocks_entries) {
     const auto without = ta::run_a1_backtest(md, ta::A1Config{}, {}, 1e6, md.dates()[260]);
     CHECK(!without.trades.empty());
 }
+
+TEST(a1_partial_off_switch) {
+    // Same winning trade as the partial/trail test, with the partial disabled: no partial
+    // sale and the stop is not raised to entry.
+    ta::Series s = setup_series();
+    const double trigger = s.back().high + 0.05;
+    double c = trigger * 1.03;
+    s.push_back({date_of(280), trigger, trigger * 1.04, trigger * 0.99, c, 1e7});
+    for (int k = 281; k < 290; ++k) {
+        c *= 1.03;
+        s.push_back(bar_at(k, c, 1.02, 0.99));
+    }
+    const ta::MarketData md({{"AAA", s}});
+    ta::A1Config cfg;
+    cfg.exits.partial_frac = 0;
+    ta::A1Engine eng(md, cfg, {}, {}, 1e6);
+    std::vector<ta::KvRecord> events;
+    ta::StepContext ctx;
+    ctx.events = &events;
+    for (const auto& d : md.dates()) {
+        if (d >= date_of(279)) eng.step(d, ctx);
+    }
+    bool partial = false;
+    for (const auto& e : events) partial |= e.str("reason") == "partial";
+    CHECK(!partial);
+    CHECK(eng.positions() == 1);
+    if (eng.positions() == 1) {
+        const auto& pos = eng.book().positions().begin()->second;
+        CHECK(pos.qty == pos.trade.qty);
+        CHECK(pos.stop < pos.trade.entry_price);
+    }
+}

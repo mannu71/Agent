@@ -186,9 +186,7 @@ struct PaperAccount::Impl {
             A1Config c1;
             apply_settings(cfg, c1);
             // Rulebook units are fractions of the active book; convert to this sleeve's capital.
-            c1.risk.risk_per_trade = to_sleeve_fraction(c1.risk.risk_per_trade, active_book, a1_cap);
-            c1.risk.max_position_frac = to_sleeve_fraction(c1.risk.max_position_frac, active_book, a1_cap);
-            c1.risk.daily_loss_limit = to_sleeve_fraction(c1.risk.daily_loss_limit, active_book, a1_cap);
+            to_sleeve_units(c1.risk, active_book, a1_cap);
             EquityRegimeInputs reg;
             reg.index = index.empty() ? nullptr : &index;
             reg.vix = vix.empty() ? nullptr : &vix;
@@ -201,9 +199,7 @@ struct PaperAccount::Impl {
                 intraday.finalize();
                 A2Config c2;
                 apply_settings(cfg, c2);
-                c2.risk.risk_per_trade = to_sleeve_fraction(c2.risk.risk_per_trade, active_book, a2_cap);
-                c2.risk.max_position_frac = to_sleeve_fraction(c2.risk.max_position_frac, active_book, a2_cap);
-                c2.risk.daily_loss_limit = to_sleeve_fraction(c2.risk.daily_loss_limit, active_book, a2_cap);
+                to_sleeve_units(c2.risk, active_book, a2_cap);
                 A2Inputs in;
                 in.intraday = &intraday;
                 in.excluded = excluded;

@@ -22,11 +22,11 @@ std::map<std::string, double> d1_signals(const Series& intraday, const D1Config&
     return out;
 }
 
-D1Engine::D1Engine(const Series& intraday, D1Config cfg, double initial_equity)
+D1Engine::D1Engine(const Series& intraday, D1Config cfg, double initial_equity, const Series* signal_bars)
     : bars_(intraday),
       cfg_(std::move(cfg)),
       index_(index_by_day(intraday)),
-      signal_(d1_signals(intraday, cfg_)),
+      signal_(d1_signals(signal_bars ? *signal_bars : intraday, cfg_)),
       risk_(cfg_.risk),
       cash_(initial_equity) {
     for (const auto& [day, range] : index_) dates_.push_back(day);
@@ -125,8 +125,8 @@ void D1Engine::load(const std::vector<KvRecord>& records) {
 }
 
 D1BacktestResult run_d1_backtest(const Series& intraday, const D1Config& cfg, double initial_equity,
-                                 const std::string& start, const std::string& end) {
-    D1Engine eng(intraday, cfg, initial_equity);
+                                 const std::string& start, const std::string& end, const Series* signal_bars) {
+    D1Engine eng(intraday, cfg, initial_equity, signal_bars);
     D1BacktestResult r;
     for (const auto& d : eng.dates()) {
         if (!start.empty() && d < start) continue;

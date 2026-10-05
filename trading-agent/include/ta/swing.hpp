@@ -14,7 +14,7 @@ namespace ta {
 // "day 3" is the third close after it.
 struct ExitRules {
     int partial_day = 3;             // sell partial at this close if in profit, stop -> entry
-    double partial_frac = 1.0 / 3.0;
+    double partial_frac = 1.0 / 3.0; // 0 (or partial_day <= 0) switches the partial off
     int time_stop_day = 20;          // exit at this close if below +time_stop_min_r; 0 disables
     double time_stop_min_r = 1.0;
     int max_hold_days = 120;         // forced exit at this close

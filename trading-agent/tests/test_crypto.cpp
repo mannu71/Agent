@@ -159,3 +159,25 @@ TEST(crypto_risk_off_goes_flat) {
     CHECK(eng.risk().state() == ta::RiskState::Off);
     CHECK(eng.exposure("BTC") == 0);
 }
+
+TEST(crypto_exit_tests_yesterdays_stop) {
+    // Lookback 5: long at the close of 90 with stop = mid 70. Next day the 50 drops out
+    // of the window, lifting today's mid to 75; a close of 75 is above yesterday's stop
+    // (70), so the paper stays long. Ratcheting before the test would exit a day early.
+    ta::Series s;
+    for (int k = 0; k < 95; ++k) {
+        const double c = k % 2 ? 102 : 100;
+        s.push_back({th::iso_day(k), c, c, c, c, 1});
+    }
+    int k = 95;
+    for (double c : {50.0, 60.0, 70.0, 80.0, 90.0, 75.0}) {
+        s.push_back({th::iso_day(k), c, c, c, c, 1});
+        ++k;
+    }
+    ta::CryptoTrendConfig cfg;
+    cfg.lookbacks = {5};
+    const ta::MarketData md({{"BTC", s}});
+    ta::CryptoTrendEngine eng(md, cfg, {}, 1e6);
+    for (const auto& d : md.dates()) eng.step(d);
+    CHECK(eng.exposure("BTC") > 0);
+}

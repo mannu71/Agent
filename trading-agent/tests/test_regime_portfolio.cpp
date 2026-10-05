@@ -58,12 +58,41 @@ TEST(crowding_gate_rules) {
     CHECK(ta::crowding_gate(0.35, nan, nan, cfg) == ta::Gate::Red);
 }
 
-TEST(event_calendar_blackout_window) {
+TEST(event_calendar_calendar_day_window) {
     ta::EventCalendar cal;
     cal.add("2026-02-01", "budget");
-    CHECK(cal.blackout("2026-01-31", 1, 1));
-    CHECK(cal.blackout("2026-02-02", 1, 1));
-    CHECK(!cal.blackout("2026-02-03", 1, 1));
+    ta::RegimeConfig cfg;
+    cfg.event_trading_days = false;
+    CHECK(cal.blackout("2026-01-31", cfg));
+    CHECK(cal.blackout("2026-02-02", cfg));
+    CHECK(!cal.blackout("2026-02-03", cfg));
+}
+
+TEST(event_blackout_counts_trading_sessions) {
+    // 2009 election result on Saturday 16 May; the +17.7% session was Monday 18 May.
+    const std::vector<std::string> sessions = {"2009-05-11", "2009-05-12", "2009-05-13", "2009-05-14",
+                                               "2009-05-15", "2009-05-18", "2009-05-19", "2009-05-20",
+                                               "2009-05-21", "2009-05-22", "2009-05-25"};
+    ta::EventCalendar cal;
+    cal.add("2009-05-16", "General election result");
+    ta::RegimeConfig cfg;  // election window: 5 sessions before, 3 after
+    CHECK(cal.blackout("2009-05-18", cfg, &sessions));  // Monday is blocked
+    CHECK(cal.blackout("2009-05-11", cfg, &sessions));  // 5 sessions before
+    CHECK(cal.blackout("2009-05-21", cfg, &sessions));  // 3 sessions after
+    CHECK(!cal.blackout("2009-05-22", cfg, &sessions));
+
+    ta::EventCalendar rbi;
+    rbi.add("2009-05-13", "RBI policy");  // 0 before, 1 after
+    CHECK(!rbi.blackout("2009-05-12", cfg, &sessions));
+    CHECK(rbi.blackout("2009-05-13", cfg, &sessions));
+    CHECK(rbi.blackout("2009-05-14", cfg, &sessions));
+    CHECK(!rbi.blackout("2009-05-15", cfg, &sessions));
+
+    // Calendar-day counting (the old behaviour) would leave Monday open after a Saturday event.
+    ta::RegimeConfig cal_days;
+    cal_days.event_trading_days = false;
+    cal_days.event_after_by_tag["election"] = 1;
+    CHECK(!cal.blackout("2009-05-18", cal_days, &sessions));
 }
 
 TEST(equity_regime_actions) {

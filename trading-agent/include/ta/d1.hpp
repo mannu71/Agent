@@ -29,14 +29,19 @@ struct D1Config {
     RiskConfig risk;
 };
 
-// Signal per day from continuous near-month futures bars ("YYYY-MM-DD HH:MM" bar
-// start times): price at signal_time (close of the last bar starting before it) over
-// the prior day's last close, minus 1.
+// Signal per day from intraday bars ("YYYY-MM-DD HH:MM" bar start times): price at
+// signal_time (close of the last bar starting before it) over the prior day's last
+// close, minus 1. Computed from a continuous unadjusted futures file this jumps on roll
+// days (the prior close belongs to the expired contract), so pass the spot index as the
+// signal series whenever possible.
 std::map<std::string, double> d1_signals(const Series& intraday, const D1Config& cfg);
 
 class D1Engine {
 public:
-    D1Engine(const Series& intraday, D1Config cfg, double initial_equity);
+    // `intraday` is what is traded (near-month futures). `signal_bars`, when given (e.g.
+    // Nifty spot 1- or 5-minute bars), is used for the signal instead, so futures rolls
+    // cannot leak carry into s.
+    D1Engine(const Series& intraday, D1Config cfg, double initial_equity, const Series* signal_bars = nullptr);
 
     void step(const std::string& date, double risk_multiplier = 1.0, std::vector<KvRecord>* events = nullptr);
 
@@ -74,6 +79,7 @@ struct D1BacktestResult {
 };
 
 D1BacktestResult run_d1_backtest(const Series& intraday, const D1Config& cfg, double initial_equity,
-                                 const std::string& start = "", const std::string& end = "");
+                                 const std::string& start = "", const std::string& end = "",
+                                 const Series* signal_bars = nullptr);
 
 }  // namespace ta
