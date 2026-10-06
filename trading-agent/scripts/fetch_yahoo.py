@@ -15,13 +15,8 @@ import urllib.request
 from zoneinfo import ZoneInfo
 
 
-def main():
-    args = sys.argv[1:]
-    if len(args) < 2:
-        sys.exit(__doc__)
-    symbol, out = args[0], args[1]
-    interval = args[args.index("--interval") + 1] if "--interval" in args else "1d"
-    value_only = "--value" in args
+def fetch(symbol, interval="1d"):
+    """Returns {"YYYY-MM-DD" or "YYYY-MM-DD HH:MM": (open, high, low, close, volume)}."""
     q = {"interval": interval}
     if interval == "1d":
         q.update(period1="0", period2=str(int(dt.datetime.now().timestamp())))
@@ -41,6 +36,17 @@ def main():
         t = dt.datetime.fromtimestamp(ts, tz)
         key = t.strftime("%Y-%m-%d") if interval == "1d" else t.strftime("%Y-%m-%d %H:%M")
         rows[key] = (o, h, l, c, v or 0)
+    return rows
+
+
+def main():
+    args = sys.argv[1:]
+    if len(args) < 2:
+        sys.exit(__doc__)
+    symbol, out = args[0], args[1]
+    interval = args[args.index("--interval") + 1] if "--interval" in args else "1d"
+    value_only = "--value" in args
+    rows = fetch(symbol, interval)
     with open(out, "w", newline="") as f:
         w = csv.writer(f)
         if value_only:

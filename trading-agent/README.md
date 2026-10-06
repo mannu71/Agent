@@ -75,6 +75,9 @@ scripts/fetch_yahoo.py ^INDIAVIX data/index/india_vix.csv --value
 scripts/fetch_yahoo.py ^NSEI data/index/nifty50_5m.csv --interval 5m   # last ~60 days only
 scripts/fetch_binance_daily.py BTCUSDT data/crypto/BTC.csv        # research history, Aug 2017+
 scripts/fetch_delta_funding.py BTCUSD 2023-12-01 data/funding/BTC.csv   # Delta India, Dec 2023+
+# Intraday sleeves: Nifty 5-minute bars (merged, so history grows past Yahoo's 60 days), 5-minute
+# bars and results filings of every A2 gap candidate, NSE F&O list and price bands:
+scripts/fetch_intraday.py 2026-07-16 2026-10-05
 ```
 
 `data/` is git-ignored. NSE's bhavcopy `PREVCLOSE` is **not** adjusted for splits, so
@@ -132,6 +135,12 @@ sleeve with the default allocation), so the backtest tests the risk that is pape
   reserve 3%, A2 and D 0%.
 * A2 and D1 run as paper-only shadows (A2 on the reserve's notional capital, D1 on ₹20 lakh
   notional) and do not count toward the active book.
+* Two real-data accounts are committed: `paper/live` (A1 + B from 2026-01-01) and `paper/intraday`
+  (A2 + D1 from 2026-07-16, the start of Yahoo's free 5-minute window; A2 on ₹10 lakh notional).
+  `scripts/daily_paper.sh` updates all data and runs both each evening after the bhavcopy is out;
+  `scripts/live_check.py paper/live` shows during the session which A1 buy-stops have triggered.
+  Free intraday data has limits: D1 trades Nifty **spot** bars as a stand-in for the future (same
+  cost model), and the price bands are today's lists applied to the whole history.
 * Kill rules are evaluated before every trading day, so a catch-up run gives exactly the same
   result as running every evening (tested): A1 halves on a negative 50-trade expectancy and stops
   on a negative 100-trade one; A2 stops on −0.1R over 40 events or no approved-vs-rejected uplift
