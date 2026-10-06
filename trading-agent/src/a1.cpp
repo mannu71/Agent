@@ -52,8 +52,13 @@ void A1Engine::step(const std::string& date, const StepContext& ctx) {
     risk_.start_day(last_equity_);
 
     book_.exits_at_open(md_, date, ctx.events);
-    enter(date, ctx);
-    book_.manage_at_close(md_, date, ctx.events);
+    if (cfg_.entry_mode == "close") {
+        book_.manage_at_close(md_, date, ctx.events);  // existing positions; new ones start tomorrow
+        enter(date, ctx);
+    } else {
+        enter(date, ctx);
+        book_.manage_at_close(md_, date, ctx.events);
+    }
 
     last_equity_ = book_.cash() + book_.market_value(md_, date, false);
     last_date_ = date;
@@ -64,7 +69,8 @@ void A1Engine::step(const std::string& date, const StepContext& ctx) {
 void A1Engine::enter(const std::string& date, const StepContext& ctx) {
     std::vector<Candidate> pending;
     pending.swap(pending_);
-    const double eq_open = book_.cash() + book_.market_value(md_, date, true);
+    const bool at_close = cfg_.entry_mode == "close";
+    const double eq_open = book_.cash() + book_.market_value(md_, date, !at_close);
     if (ctx.block_new_entries || !pending_allowed_ || !risk_.allows_new_entries(eq_open)) return;
 
     EquityRegime today;
@@ -78,16 +84,26 @@ void A1Engine::enter(const std::string& date, const StepContext& ctx) {
         if (book_.holds(c.symbol) || excluded_.excluded(c.symbol, date)) continue;
         const int external = ctx.shared ? ctx.shared->external_positions : 0;
         if (book_.count() + external >= cfg_.risk.max_positions) break;
-        const Bar* b = md_.bar(c.symbol, date);
+        std::size_t i = 0;
+        const Bar* b = md_.bar(c.symbol, date, &i);
         if (!b) continue;
 
         const double trigger = c.pivot + cfg_.tick;
-        if (b->high < trigger) continue;                                  // never triggered
-        if (b->open > trigger * (1.0 + cfg_.entry_limit_frac)) continue;  // gapped past the limit
-        const double fill = std::max(b->open, trigger);
+        double fill = 0;
+        if (at_close) {
+            if (b->close < trigger || b->high <= b->low) continue;
+            if ((b->close - b->low) / (b->high - b->low) < cfg_.confirm_close_pos) continue;
+            const double avg_vol = i > 0 ? sma_volume(md_.universe().at(c.symbol), i - 1, 20) : 0;
+            if (!(avg_vol > 0) || b->volume < cfg_.confirm_vol_mult * avg_vol) continue;
+            fill = b->close;
+        } else {
+            if (b->high < trigger) continue;                                  // never triggered
+            if (b->open > trigger * (1.0 + cfg_.entry_limit_frac)) continue;  // gapped past the limit
+            fill = std::max(b->open, trigger);
+        }
         const double stop = fill * (1.0 - cfg_.stop_adr_mult * c.adr);
 
-        const double gross = book_.market_value(md_, date, true);
+        const double gross = book_.market_value(md_, date, !at_close);
         const SizeDecision d =
             risk_.size_long(eq_open, book_.cash(), gross, fill, stop, c.adr, cfg_.cost.round_trip(), mult);
         if (d.qty <= 0) {
@@ -108,7 +124,7 @@ void A1Engine::enter(const std::string& date, const StepContext& ctx) {
         book_.open(c.symbol, date, fill, stop, d.qty, c.adr, b->close, ctx.events);
         // Daily bars cannot say whether the low came before or after the fill, so assume
         // the worst: a low through the stop on entry day is a stop-out.
-        if (b->low <= stop) book_.sell(c.symbol, d.qty, stop, date, "stop_entry_day", ctx.events);
+        if (!at_close && b->low <= stop) book_.sell(c.symbol, d.qty, stop, date, "stop_entry_day", ctx.events);
     }
 }
 

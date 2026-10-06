@@ -26,6 +26,13 @@ struct A1Config {
     double tick = 0.05;               // NSE tick size
     double entry_limit_frac = 0.005;  // buy-stop-limit: limit 0.5% above the trigger
     double stop_adr_mult = 1.0;       // initial stop = fill x (1 - mult x ADR20), see README
+    // "stop": buy-stop above the pivot during the session (rulebook). "close": buy at the
+    // close only if the breakout holds there: close above the trigger, in the top part of
+    // the day's range, on above-average volume (O'Neil's confirmation rule; thresholds
+    // fixed in advance, not fitted).
+    std::string entry_mode = "stop";
+    double confirm_close_pos = 0.5;   // (close - low) / (high - low) at least this
+    double confirm_vol_mult = 1.5;    // day's volume at least this x the prior 20-day average
     // Volatility-scaled sizing (Barroso & Santa-Clara; Cederburg et al.: momentum was the
     // one family where it held up in real time): risk x min(cap, target / sigma_n of the
     // index). target 0 = expanding median of the index's own sigma_n (no look-ahead).

@@ -42,6 +42,22 @@ INR-settled perpetuals decides whether it is worth running.
 
 Per the blueprint, a failed A1 is replaced by a Nifty200 Momentum 30 index fund.
 
+**Diagnosis and one fix (6 October 2026).** 377 of the 1,939 trades (19%) were stopped out on the
+day they were bought, at −1.09R each: −411R of the −428R total. On 2017–2021 only (2022–2026 kept
+unseen), breakouts that closed in the top third of the day's range averaged +0.40R and those in the
+bottom third −0.66R. The fix tested is O'Neil's confirmation rule with thresholds fixed in advance
+(`a1.entry_mode = close`): buy at the close only if it is above the trigger, in the top half of the
+day's range, on at least 1.5× the 20-day average volume.
+
+| Period | Buy-stop (rulebook) | Confirmed close |
+|---|---|---|
+| 2017–2021 (where the idea came from) | 790 trades, −0.12R | 315 trades, +0.23R |
+| 2022–2026 (holdout) | 1,144 trades, −0.33R | 528 trades, −0.08R |
+| Full period | 1,939 trades, −0.22R, max DD 94% | 843 trades, +0.03R, max DD 38% |
+
+It removes most of the loss but still fails gate 1 over 24 logged trials (t = 0.5, −0.07R at 2×
+costs, deflated Sharpe 0). The rulebook default stays the buy-stop.
+
 ## The screener (A1 momentum score) — weak ranking skill, no top-20 skill
 
 Daily scores of every eligible stock, 2017-01 to 2026-10 (~2,400 days, ~1M score rows):

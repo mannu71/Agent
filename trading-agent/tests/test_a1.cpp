@@ -208,6 +208,31 @@ TEST(backtest_skips_open_gapped_past_limit) {
     CHECK(r.trades.empty());
 }
 
+TEST(a1_close_entry_needs_confirmed_breakout) {
+    ta::A1Config cfg;
+    cfg.entry_mode = "close";
+    auto run = [&](double hi, double lo, double close, double vol) {
+        ta::Series s = setup_series();
+        const double trigger = s.back().high + 0.05;
+        s.push_back({date_of(280), trigger, trigger * hi, trigger * lo, trigger * close, vol});
+        s.push_back(bar_at(281, trigger * close, 1.01, 0.995));
+        const ta::MarketData md({{"AAA", s}});
+        return ta::run_a1_backtest(md, cfg, {}, 1e6, date_of(279));
+    };
+    // Wide day: the low is far below the ADR stop, but the close confirms. Bought at the
+    // close, so the intraday low cannot stop it out the same day.
+    const auto ok = run(1.06, 0.90, 1.05, 2e7);
+    CHECK(ok.trades.size() == 1);
+    if (ok.trades.size() == 1) {
+        CHECK(ok.trades[0].entry_date == date_of(280));
+        CHECK(ok.trades[0].exit_reason != "stop_entry_day");
+        CHECK_NEAR(ok.trades[0].entry_price, (setup_series().back().high + 0.05) * 1.05, 1e-9);
+    }
+    CHECK(run(1.06, 0.90, 1.05, 1e7).trades.empty());   // ordinary volume
+    CHECK(run(1.06, 0.99, 1.005, 2e7).trades.empty());  // closed in the bottom of its range
+    CHECK(run(1.06, 0.95, 0.99, 2e7).trades.empty());   // closed back below the trigger
+}
+
 TEST(backtest_excluded_symbol_never_traded) {
     ta::Series s = setup_series();
     const double trigger = s.back().high + 0.05;

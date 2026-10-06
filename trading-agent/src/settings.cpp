@@ -51,6 +51,10 @@ void apply_settings(const Config& c, A1Config& a1) {
     config_set(c, "a1.max_below_pivot", a1.screen.max_below_pivot);
     config_set(c, "a1.entry_limit_frac", a1.entry_limit_frac);
     config_set(c, "a1.stop_adr_mult", a1.stop_adr_mult);
+    config_set(c, "a1.entry_mode", a1.entry_mode);
+    if (a1.entry_mode != "stop" && a1.entry_mode != "close") throw std::runtime_error("a1.entry_mode must be stop or close");
+    config_set(c, "a1.confirm_close_pos", a1.confirm_close_pos);
+    config_set(c, "a1.confirm_vol_mult", a1.confirm_vol_mult);
     config_set(c, "a1.partial_day", a1.exits.partial_day);
     config_set(c, "a1.time_stop_day", a1.exits.time_stop_day);
     config_set(c, "a1.max_hold_days", a1.exits.max_hold_days);
@@ -171,6 +175,9 @@ std::vector<std::pair<std::string, std::string>> default_settings() {
                            {"a1.max_below_pivot", f(a1.screen.max_below_pivot)},
                            {"a1.entry_limit_frac", f(a1.entry_limit_frac)},
                            {"a1.stop_adr_mult", f(a1.stop_adr_mult)},
+                           {"a1.entry_mode", a1.entry_mode},
+                           {"a1.confirm_close_pos", f(a1.confirm_close_pos)},
+                           {"a1.confirm_vol_mult", f(a1.confirm_vol_mult)},
                            {"a1.partial_day", std::to_string(a1.exits.partial_day)},
                            {"a1.time_stop_day", std::to_string(a1.exits.time_stop_day)},
                            {"a1.max_hold_days", std::to_string(a1.exits.max_hold_days)},
