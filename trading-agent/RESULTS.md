@@ -69,7 +69,7 @@ these runs relax rules that cannot be met on that data. They are not gate tests.
 
 - **A2** (relative-volume gate off, approval warm-up off, every approved event taken): 24 results
   gaps with a filing catalyst; 3 filled, all losers (−1.13R, −0.50R, −0.28R), −₹9,399 on ₹10 lakh.
-  Most approved events never filled (first 5-minute bar red: 11; not triggered: 2; too close to the
+  Most approved events never filled (first 5-minute bar red: 10; not triggered: 2; too close to the
   price band: 1, TRENT on 6 October; stop wider than the risk cap: 4).
 - **D1** (Nifty spot as the traded series, 20-day warm-up instead of 60): 11 trades, 55% winners,
   net −₹1,629 on one lot; mean move 14.7 points in the signal direction against 16.9 points of
