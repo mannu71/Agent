@@ -1,4 +1,4 @@
-account last_date=2026-10-05 last_active=2377376.1517903483
-risk state=normal high_water=2505978.9327047071 last_equity=2377376.1517903483 day_start=2377376.1517903483
+account last_date=2026-10-05 last_active=2376005.8849793002
+risk state=normal high_water=2505978.9327047071 last_equity=2376005.8849793002 day_start=2377376.1517903483
 kill_state sleeve=A1 action=none
 kill_state sleeve=B action=none

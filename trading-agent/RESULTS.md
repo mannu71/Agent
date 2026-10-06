@@ -70,6 +70,7 @@ Nifty futures intraday bars. Both require a paid feed (e.g. Kite Connect histori
 ## Live paper account
 
 `paper/live` runs A1 and B on real data from 2026-01-01 (state, journal, trades and scores are
-committed). At 2026-10-05: A1 −11.8% (halved by its kill rule), B −1.0%, journal verified. Its
+committed). At 2026-10-05: A1 −11.8% (halved by its kill rule), B −1.4%, journal verified. A1 takes no new
+entries while Nifty is below its 200-DMA (at 2026-10-05: 22,556 vs 24,340, gate red). Its
 "next session buy-stops" are printed by `ta_paper status paper/live`; given the results above they
 are **not recommendations**.

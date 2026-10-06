@@ -1,10 +1,10 @@
-b cash=220931.71419527862 tax_paid=6490.8143038542339 funding_paid=2405.9525468281863 costs_paid=5934.5649399105641 last_date=2026-10-04 last_equity=395823.39227928082 primed_until=2026-10-04
-risk state=normal high_water=403742.03699886001 last_equity=395823.39227928082 day_start=393319.27498141548
-holding sleeve=B symbol=BTC entry_date=2026-08-17 exit_date= side=1 entry_price=64532.099999999999 qty=0 risk_per_share=0 pnl=6729.8800725074916 r=0 exit_reason= asset=BTC units=1.1642787736494875 avg_cost=81134.681276224277 last_close=86530
-holding sleeve=B symbol=ETH entry_date=2026-08-17 exit_date= side=1 entry_price=1913.5999999999999 qty=0 risk_per_share=0 pnl=6783.4201040032949 r=0 exit_reason= asset=ETH units=27.190417024251367 avg_cost=2564.5162846164385 last_close=2726.9400000000001
-signal_state asset=BTC n=5 long=1 stop=85076.800000000003
+b cash=220911.09291749704 tax_paid=6490.8143038542339 funding_paid=2426.573824609754 costs_paid=5934.5649399105641 last_date=2026-10-05 last_equity=394453.12546823279 primed_until=2026-10-05
+risk state=normal high_water=403742.03699886001 last_equity=394453.12546823279 day_start=395823.39227928082
+holding sleeve=B symbol=BTC entry_date=2026-08-17 exit_date= side=1 entry_price=64532.099999999999 qty=0 risk_per_share=0 pnl=6722.2959678218276 r=0 exit_reason= asset=BTC units=1.1642787736494875 avg_cost=81134.681276224277 last_close=85766.869999999995
+holding sleeve=B symbol=ETH entry_date=2026-08-17 exit_date= side=1 entry_price=1913.5999999999999 qty=0 risk_per_share=0 pnl=6770.3829309073917 r=0 exit_reason= asset=ETH units=27.190417024251367 avg_cost=2564.5162846164385 last_close=2709.98
+signal_state asset=BTC n=5 long=1 stop=85524.005000000005
 signal_state asset=BTC n=10 long=1 stop=85015.005000000005
-signal_state asset=BTC n=20 long=1 stop=81132.239999999991
+signal_state asset=BTC n=20 long=1 stop=81413.005000000005
 signal_state asset=BTC n=30 long=1 stop=81132.239999999991
 signal_state asset=BTC n=60 long=1 stop=74760
 signal_state asset=BTC n=90 long=1 stop=74455
@@ -13,7 +13,7 @@ signal_state asset=BTC n=250 long=0 stop=100490.48
 signal_state asset=BTC n=360 long=0 stop=100490.48
 signal_state asset=ETH n=5 long=1 stop=2697.7650000000003
 signal_state asset=ETH n=10 long=1 stop=2697.7650000000003
-signal_state asset=ETH n=20 long=1 stop=2587.2250000000004
+signal_state asset=ETH n=20 long=1 stop=2597.2250000000004
 signal_state asset=ETH n=30 long=1 stop=2587.2250000000004
 signal_state asset=ETH n=60 long=1 stop=2324.6750000000002
 signal_state asset=ETH n=90 long=1 stop=2259.8649999999998
