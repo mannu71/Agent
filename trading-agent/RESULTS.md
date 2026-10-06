@@ -62,6 +62,20 @@ On the 57 sessions of real 5-minute Nifty data available free, the Baltussen slo
 far below the 0.08 archive line. Too short to prove anything, but nothing argues for keeping D1;
 years of futures intraday data (a paid feed) are needed for a proper test.
 
+## Intraday sleeves on the free 5-minute window (2026-07-16 to 2026-10-06, research runs)
+
+Yahoo serves ~60 sessions of 5-minute bars, and its NSE opening-bar volumes are mostly zero, so
+these runs relax rules that cannot be met on that data. They are not gate tests.
+
+- **A2** (relative-volume gate off, approval warm-up off, every approved event taken): 24 results
+  gaps with a filing catalyst; 3 filled, all losers (−1.13R, −0.50R, −0.28R), −₹9,399 on ₹10 lakh.
+  Most approved events never filled (first 5-minute bar red: 11; not triggered: 2; too close to the
+  price band: 1, TRENT on 6 October; stop wider than the risk cap: 4).
+- **D1** (Nifty spot as the traded series, 20-day warm-up instead of 60): 11 trades, 55% winners,
+  net −₹1,629 on one lot; mean move 14.7 points in the signal direction against 16.9 points of
+  cost; slope 0.016 (t = 0.34). A 40-day warm-up shows 6 trades and a profit, but that is a subset of
+  the same days chosen after the fact.
+
 ## Not testable with free data
 
 A2 (results gaps) needs historical 5-minute stock bars and filing timestamps; D1 needs years of

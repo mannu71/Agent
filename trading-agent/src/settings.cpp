@@ -128,6 +128,7 @@ void apply_settings(const Config& c, D1Config& d1) {
     config_set(c, "d1.slippage_points", d1.slippage_points);
     config_set(c, "d1.min_beta", d1.min_beta);
     config_set(c, "d1.min_sleeve_equity", d1.min_sleeve_equity);
+    config_set(c, "d1.min_history", d1.min_history);
 }
 
 void apply_settings(const Config& c, OptionsConfig& o) {
@@ -226,6 +227,7 @@ std::vector<std::pair<std::string, std::string>> default_settings() {
                            {"d1.slippage_points", f(d1.slippage_points)},
                            {"d1.min_beta", f(d1.min_beta)},
                            {"d1.min_sleeve_equity", f(d1.min_sleeve_equity)},
+                           {"d1.min_history", std::to_string(d1.min_history)},
                            {"c.budget_frac", f(o.budget_frac)},
                            {"c.cost_per_leg_lot", f(o.cost_per_leg_lot)}});
     return out;
