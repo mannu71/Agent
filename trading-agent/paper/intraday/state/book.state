@@ -1,4 +1,4 @@
-account last_date=2026-10-05 last_active=2500000
+account last_date=2026-10-06 last_active=2500000
 risk state=normal high_water=2500000 last_equity=2500000 day_start=2500000
 kill_state sleeve=A2 action=none
 kill_state sleeve=D1 action=none

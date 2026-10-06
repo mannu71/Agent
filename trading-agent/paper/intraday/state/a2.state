@@ -1,4 +1,4 @@
-a2 last_date=2026-10-05 last_equity=1000000
+a2 last_date=2026-10-06 last_equity=1000000
 risk state=normal high_water=1000000 last_equity=1000000 day_start=1000000
 book sleeve=A2 cash=1000000
 a2_event date=2026-07-27 symbol=IDFCFIRSTB gap=0.068201510087882111 open=86.299999999999997 prior_close=80.790000000000006 adr=0.020986506179206478 fno=1 upper_band=88.869000000000014 v0=-0 v1=-1.0335690391812067 v2=1.0435308343409915 v3=-0.20472830795890587 v4=-0 v5=-0.13550315750139319 neglect=0 range_breakout=1 early_cycle=1 score=0 approved=0 status=warmup
