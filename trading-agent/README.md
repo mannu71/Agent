@@ -89,6 +89,12 @@ history for NSE stocks or Nifty futures (A2 and D1 need a paid feed such as Kite
 Delta India price history before its December 2023 launch. Crypto prices are in USD; the sleeve's
 rupee figures apply USD returns to INR capital and ignore the exchange rate.
 
+## Concept Desk app (live paper trading on your computer)
+
+`app/` is a local trading app: live charts for crypto, US and Indian stocks, strategy signals on
+the chart with the memory's verdict, one-click paper orders, positions, history and accounts.
+Windows: double-click `app/start.bat`. See `app/README.md`.
+
 ## Institutional-concept engine
 
 `ta_backtest setups data/crypto_1m --tf 60` runs the concept detectors (`include/ta/concepts.hpp`)

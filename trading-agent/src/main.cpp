@@ -426,6 +426,7 @@ int run_setups(const cli::Args& a) {
     write_outputs(a, res.trades, res.curve);
     if (a.has("cases")) {
         std::ofstream out(a.str("cases"));
+        out << std::setprecision(17);
         out << "time,pattern,symbol,tf,side,order,trend,session,vol,vwap,flow,filled,entry_time,exit_time,entry,stop,"
                "target,exit,r_gross,r_net,exit_reason\n";
         for (const auto& c : cases) {

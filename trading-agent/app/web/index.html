@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Concept Desk</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 1l7 7-7 7-7-7z' fill='%235b8def'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/static/style.css">
+<script src="/static/lightweight-charts.js"></script>
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <span class="logo" aria-hidden="true">◆</span>
+    <div><div class="name">Concept Desk</div><div class="tag">Paper trading · no real orders</div></div>
+  </div>
+  <div class="feeds" id="feeds"></div>
+  <div class="acct" id="acct-summary"></div>
+  <button class="ghost" id="open-settings">Settings</button>
+</header>
+
+<div class="banner" id="banner">
+  <strong>Paper money only.</strong> Every strategy here lost money after costs in the 2020–2026 crypto backtests. Each signal shows its memory record; "Skip" means that kind of setup has lost before.
+  <button class="x" id="hide-banner" aria-label="Hide notice">×</button>
+</div>
+
+<main class="layout">
+  <aside class="watch" aria-label="Watchlist">
+    <div class="seg" id="market-tabs" role="tablist"></div>
+    <div class="watch-list" id="watch-list"></div>
+  </aside>
+
+  <section class="chart-col">
+    <div class="chart-head">
+      <div class="sym-head">
+        <div class="sym" id="sym-name">—</div>
+        <div class="px num" id="sym-price">—</div>
+        <div class="chg num" id="sym-change"></div>
+      </div>
+      <div class="seg tf" id="tf-tabs" role="tablist"></div>
+    </div>
+    <div class="chart-wrap"><div id="chart"></div><div class="chart-empty" id="chart-empty">Loading prices…</div></div>
+    <div class="legend" id="legend"></div>
+  </section>
+
+  <aside class="side">
+    <section class="panel signals">
+      <div class="panel-head"><h2>Strategy signals</h2>
+        <label class="check"><input type="checkbox" id="active-only" checked> Active only</label></div>
+      <div id="signal-list" class="signal-list"></div>
+    </section>
+
+    <section class="panel ticket" id="ticket">
+      <div class="panel-head"><h2>Paper order</h2><span class="muted small" id="ticket-src"></span></div>
+      <div class="sides">
+        <button class="side-btn buy" data-side="buy" id="btn-buy">Buy</button>
+        <button class="side-btn sell" data-side="sell" id="btn-sell">Sell</button>
+      </div>
+      <div class="grid2">
+        <label>Type
+          <select id="o-type"><option value="market">Market</option><option value="limit">Limit</option><option value="stop">Stop</option></select>
+        </label>
+        <label>Price <input id="o-price" inputmode="decimal" placeholder="market"></label>
+        <label>Stop-loss <input id="o-stop" inputmode="decimal"></label>
+        <label>Target <input id="o-target" inputmode="decimal"></label>
+        <label>Size by
+          <select id="o-sizeby"><option value="risk">Risk % of account</option><option value="qty">Quantity</option></select>
+        </label>
+        <label id="o-size-label">Risk % <input id="o-size" inputmode="decimal" value="0.5"></label>
+      </div>
+      <div class="est" id="o-est"></div>
+      <button class="primary" id="o-submit">Place paper buy</button>
+    </section>
+  </aside>
+</main>
+
+<section class="bottom">
+  <div class="seg" id="bottom-tabs" role="tablist">
+    <button data-tab="positions" aria-selected="true">Positions</button>
+    <button data-tab="orders">Open orders</button>
+    <button data-tab="history">History</button>
+    <button data-tab="accounts">Accounts</button>
+  </div>
+  <div class="table-wrap" id="bottom-body"></div>
+</section>
+
+<dialog id="settings">
+  <form method="dialog" class="settings-form" id="settings-form">
+    <h2>Settings</h2>
+    <p class="muted small">US live prices need a free Alpaca account (alpaca.markets → paper account → API keys). Without keys, US prices come from Yahoo about once a minute. Keys stay on this computer in app/data/settings.json.</p>
+    <label>Alpaca API key ID <input id="s-key" autocomplete="off"></label>
+    <label>Alpaca secret key <input id="s-secret" type="password" autocomplete="off"></label>
+    <label>Default risk per signal trade (% of account) <input id="s-risk" inputmode="decimal"></label>
+    <div class="row-end"><button value="cancel" class="ghost">Cancel</button><button id="s-save" value="default" class="primary">Save</button></div>
+  </form>
+</dialog>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<script src="/static/app.js"></script>
+</body>
+</html>
