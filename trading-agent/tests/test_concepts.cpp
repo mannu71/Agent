@@ -4,6 +4,8 @@
 #include "ta/casebook.hpp"
 #include "ta/concepts.hpp"
 #include "ta/flow.hpp"
+#include "ta/journal.hpp"
+#include "ta/live.hpp"
 
 namespace {
 
@@ -239,4 +241,43 @@ TEST(random_baseline_keeps_order_type_and_distances) {
     CHECK_NEAR(s.entry / s.ref, 0.98, 1e-12);
     CHECK_NEAR(s.stop / s.ref, 0.96, 1e-12);
     CHECK(s.expiry - s.t == 20);
+}
+
+TEST(live_journal_is_append_only_and_idempotent) {
+    const auto dir = th::temp_dir("live");
+    auto mk = [](std::int64_t t, const std::string& sym, double r, const std::string& reason) {
+        ta::Case c;
+        c.setup.t = t;
+        c.setup.pattern = "fvg";
+        c.setup.symbol = sym;
+        c.setup.tf = 60;
+        c.setup.side = 1;
+        c.setup.order = 'L';
+        c.setup.expiry = t + 600;
+        c.filled = true;
+        c.entry_t = t + 5;
+        c.exit_t = t + 50;
+        c.entry_px = 100;
+        c.stop_px = 99;
+        c.exit_px = 100 + r;
+        c.r_net = r;
+        c.exit_reason = reason;
+        return c;
+    };
+    std::vector<ta::Case> cases = {mk(10, "A", 1.5, "target"), mk(20, "B", 0.2, "end_of_data")};
+    ta::PortfolioResult none;
+    const std::map<std::string, std::int64_t> last = {{"A", 1000}, {"B", 1000}};
+    const auto r1 = ta::write_live(dir, cases, none, 0, last);
+    CHECK(r1.new_events == 5);  // 2 setups, 2 fills, 1 exit
+    CHECK(r1.open_setups == 1 && r1.closed_setups == 1);
+    const auto r2 = ta::write_live(dir, cases, none, 0, last);
+    CHECK(r2.new_events == 0 && r2.revisions == 0);
+    // B closes; A's exit is recomputed differently: B's exit is new, A's is a revision.
+    cases[1].exit_reason = "stop";
+    cases[1].r_net = -1.0;
+    cases[0].r_net = 1.4;
+    const auto r3 = ta::write_live(dir, cases, none, 0, last);
+    CHECK(r3.new_events == 1 && r3.revisions == 1);
+    const auto v = ta::Journal::verify(dir + "/journal.log");
+    CHECK(v.ok && v.lines == 7);
 }

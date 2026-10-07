@@ -76,3 +76,21 @@ Intraday momentum (last 30 minutes of the UTC day, bp per day, cost ≈ 14 bp ro
 
 **Status: no crypto concept passes.** Past performance of a pattern in a context did not
 persist, so the memory picked contexts that had worked and then stopped working.
+
+## Live paper test (crypto, from 2026-10-01)
+
+Rules were frozen on 2026-10-07 after the backtest above, which used data to 2026-09-30, so
+everything from 2026-10-01 is out of sample. `scripts/live_concepts.sh` runs every hour:
+it appends the newest closed 1-minute bars (`scripts/update_binance_1m.py`), recomputes every
+setup with the same code as the backtest (bars still forming are ignored), and writes to
+`paper/crypto_concepts/tf60` and `tf240`:
+
+- `journal.log`: hash-chained, append-only record of each setup, fill and exit, and of
+  every agent trade, the first time it is seen (journal timestamps show when). A recomputed
+  result that differs from the record is added as a `revision`, never edited in. Check with
+  `ta_paper verify paper/crypto_concepts/tf60`.
+- `setups.csv`: the shadow log of every pattern's setups, with status and net R.
+- `trades.csv` / `open.csv`: the memory-gated agent's closed and open paper trades.
+- `summary.txt`: live totals per pattern and for the agent, and what the memory approves
+  right now. A situation keyed with an empty trend comes from the 2020 warm-up (before 50
+  days of history) and cannot recur.

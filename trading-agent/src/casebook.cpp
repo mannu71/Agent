@@ -160,6 +160,19 @@ PortfolioResult run_casebook(const std::vector<Case>& cases, const PortfolioConf
             }
             pending.push({c.exit_t + 1, i});
         }
+        // What the memory says now, after every case has finished.
+        for (; !pending.empty(); pending.pop()) {
+            const Case& done = cases[pending.top().second];
+            if (done.exit_reason != "end_of_data") memory[memory_key(done.setup, cfg.recall.fields)].add(done.r_net);
+        }
+        for (const auto& [key, st] : memory) {
+            if (st.n < cfg.recall.min_cases) continue;
+            const double n = static_cast<double>(st.n);
+            const double mean = st.sum / n;
+            const double var = std::max(0.0, (st.sum_sq - st.sum * st.sum / n) / (n - 1));
+            const double lower = mean - cfg.recall.z * std::sqrt(var / n);
+            res.memory_now[key] = {st.n, mean, lower, mean >= cfg.recall.min_mean_r && lower > 0};
+        }
     }
     for (std::size_t i : idx) res.recalled += recall_ok[i] ? 1 : 0;
 
@@ -211,6 +224,7 @@ PortfolioResult run_casebook(const std::vector<Case>& cases, const PortfolioConf
         tr.r_multiple = pnl / risk_amt;
         tr.exit_reason = c.exit_reason;
         res.trades.push_back(tr);
+        res.case_of_trade.push_back(i);
         open.push({c.exit_t, res.trades.size() - 1});
         ++held[c.setup.symbol];
         ++res.taken;

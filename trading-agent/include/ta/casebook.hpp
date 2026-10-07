@@ -60,8 +60,17 @@ struct PortfolioConfig {
 
 struct PortfolioResult {
     std::vector<Trade> trades;
+    std::vector<std::size_t> case_of_trade;  // index into the input cases, parallel to trades
     EquityCurve curve;     // realised equity at each UTC day with an exit
     int setups = 0, filled = 0, recalled = 0, taken = 0;
+    // Memory at the end of the data: every key with >= min_cases finished cases, its case
+    // count, mean net R and one-sided lower bound, and whether the recall rule approves it.
+    struct KeyStats {
+        std::size_t n = 0;
+        double mean = 0, lower = 0;
+        bool approved = false;
+    };
+    std::map<std::string, KeyStats> memory_now;
     double tax_paid = 0;
 };
 

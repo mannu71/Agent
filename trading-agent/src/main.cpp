@@ -14,6 +14,7 @@
 #include "ta/a1.hpp"
 #include "ta/a2.hpp"
 #include "ta/casebook.hpp"
+#include "ta/live.hpp"
 #include "ta/crypto_trend.hpp"
 #include "ta/csv.hpp"
 #include "ta/d1.hpp"
@@ -44,7 +45,8 @@ const char* kUsage = R"(usage: ta_backtest <sleeve> ... [options]
                     per-pattern edge vs a matched random entry, then the memory-gated
                     portfolio. --no-memory, --tax 0.312, --cost-mult 2, --cases OUT.csv,
                     --memory-fields concept,tf,side,trend, --trial-log F --label T --gate,
-                    --trade-from DATE (earlier setups only warm up the memory)
+                    --trade-from DATE (earlier setups only warm up the memory),
+                    --live DIR --live-from DATE: forward paper record (journal + views in DIR)
   options --legs "P:22000:-1:85,P:21800:1:40,..." --expiry YYYY-MM-DD --today YYYY-MM-DD
           --active-book N [--existing N] [--vol-red] [--blackout] [--lot 65]
   a1 also takes --trial-log FILE [--label TEXT]: every configuration run is appended
@@ -340,25 +342,45 @@ int run_setups(const cli::Args& a) {
     const std::int64_t start = a.has("start") ? ta::parse_minutes(a.str("start")) : 0;
     const std::int64_t end = a.has("end") ? ta::parse_minutes(a.str("end")) + 1440 : std::numeric_limits<std::int64_t>::max();
 
+    const bool live = a.has("live");
+    std::map<std::string, std::int64_t> last_t;
     std::vector<ta::Case> cases, cases2, randoms;
     for (const auto& sym : symbols) {
         const ta::FlowSeries m1 = ta::load_flow((fs::path(dir) / (sym + ".csv")).string());
-        const ta::FlowSeries bars = ta::resample(m1, tf);
+        if (!m1.empty()) last_t[sym] = m1.back().t;
+        ta::FlowSeries bars = ta::resample(m1, tf);
+        // The last bar is still forming unless its final minute is in the data.
+        if (!bars.empty() && bars.back().t + tf > m1.back().t + 1) bars.pop_back();
         const ta::FlowSeries daily = ta::resample(m1, 1440);
         std::size_t n_sym = 0;
         std::vector<ta::Case> sym_cases;
         for (const auto& st : ta::detect_setups(bars, daily, tf, sym, patterns, cc)) {
             if (st.t < start || st.t >= end) continue;
             sym_cases.push_back(ta::simulate_case(st, m1, cost));
-            cases2.push_back(ta::simulate_case(st, m1, cost2));
+            if (!live) cases2.push_back(ta::simulate_case(st, m1, cost2));
             ++n_sym;
         }
         const std::map<std::string, const ta::FlowSeries*> one = {{sym, &m1}};
-        for (auto& c : ta::random_cases(sym_cases, one, cost, 17u + static_cast<unsigned>(randoms.size()))) {
-            randoms.push_back(std::move(c));
+        if (!live) {
+            for (auto& c : ta::random_cases(sym_cases, one, cost, 17u + static_cast<unsigned>(randoms.size()))) {
+                randoms.push_back(std::move(c));
+            }
         }
         cases.insert(cases.end(), sym_cases.begin(), sym_cases.end());
         std::cerr << sym << ": " << m1.size() << " minutes, " << n_sym << " setups\n";
+    }
+
+    if (live) {
+        // Forward paper record: memory warmed on all history, trading from --live-from.
+        ta::PortfolioConfig pc;
+        pc.tax_rate = a.num("tax", 0.0);
+        if (a.has("memory-fields")) pc.recall.fields = split_list(a.str("memory-fields"));
+        const std::int64_t live_from = ta::parse_minutes(a.str("live-from"));
+        pc.trade_from = live_from;
+        const auto res = ta::run_casebook(cases, pc);
+        const auto rep = ta::write_live(a.str("live"), cases, res, live_from, last_t);
+        std::cout << "[tf " << tf << "] " << rep.digest << '\n';
+        return 0;
     }
 
     // Edge of each pattern on its own (every filled setup), against the matched random entries.

@@ -1,0 +1,25 @@
+live since 2026-10-01 00:00 UTC; data to BNB 2026-10-07 15:59  BTC 2026-10-07 15:59  ETH 2026-10-07 15:59  SOL 2026-10-07 15:59  XRP 2026-10-07 15:59  
+
+every setup (shadow log): pattern, setups, open, closed, mean net R of closed
+  choch           12    2   10   -0.329
+  fvg             72    8   44   -0.378
+  hl_pullback     52    6   46    0.114
+  ob              40    0   29   -0.261
+  spring          12    0   12    0.422
+  sweep           51    0   51   -0.480
+  sweep_absorb    32    0   32   -0.266
+  sweep_cont      45    0   45    0.085
+  va80            11    0   11    0.041
+
+agent (memory-gated): closed 0, P&L 0.000; open 0, unrealised 0.000R
+backtest reference: knowledge/concepts.md (every concept lost after costs in 2020-26)
+
+memory now: 53 situations with >= 30 finished cases, 1 approved for trading (mean >= +0.05R and lower bound > 0)
+  APPROVED spring|60|long|                      n    39  mean   0.780R  lower   0.097R
+           choch|60|long|                       n    66  mean   0.238R  lower  -0.010R
+           hl_pullback|60|long|                 n   172  mean   0.145R  lower  -0.035R
+           choch|60|long|up                     n  1250  mean   0.020R  lower  -0.037R
+           fvg|60|long|up                       n  4409  mean  -0.003R  lower  -0.039R
+           fvg|60|long|                         n   156  mean   0.119R  lower  -0.072R
+           choch|60|long|down                   n  1305  mean  -0.028R  lower  -0.080R
+           fvg|60|short|up                      n  4196  mean  -0.050R  lower  -0.086R
