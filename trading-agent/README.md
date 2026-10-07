@@ -96,7 +96,8 @@ on 1-minute bars with taker-buy volume (`scripts/fetch_binance_klines.py BTCUSDT
 data/crypto_1m/BTC.csv`), plays every setup out minute by minute (`include/ta/casebook.hpp`),
 prints each pattern's edge against a matched random entry, then runs the memory-gated portfolio.
 The concept library and results are in `knowledge/`.
-`scripts/live_concepts.sh` keeps a live paper record of it (hourly; see `knowledge/concepts.md`).
+`scripts/live_concepts.sh` keeps a live paper record of it (hourly; see `knowledge/concepts.md`), shown on the
+Concept Desk dashboard (`dashboard/concept_desk.html`).
 
 ## Backtests
 

@@ -16,7 +16,7 @@ namespace ta {
 //    pattern, symbol, timeframe, side, time and order type, so rerunning on the same data adds
 //    nothing; if a recomputed exit differs from the journalled one, a `revision` is appended
 //    instead of editing history;
-//  - rewrites the derived views setups.csv, open.csv, trades.csv and summary.txt.
+//  - rewrites the derived views setups.csv, open.csv, trades.csv, memory.csv and summary.txt.
 struct LiveReport {
     int new_events = 0;
     int revisions = 0;

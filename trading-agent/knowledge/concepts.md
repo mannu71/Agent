@@ -94,3 +94,10 @@ setup with the same code as the backtest (bars still forming are ignored), and w
 - `summary.txt`: live totals per pattern and for the agent, and what the memory approves
   right now. A situation keyed with an empty trend comes from the 2020 warm-up (before 50
   days of history) and cannot recur.
+
+**Dashboard:** https://claude.ai/artifact/CPYShwxAwh8iUvKAuSCE7D (source
+`dashboard/concept_desk.html`). The hourly run writes `paper/crypto_concepts/ui.json`
+(`scripts/export_live_ui.py`) into the page's database, and an open page updates by itself.
+"Memory says" on each setup is the agent's verdict: **Trade** only when that situation
+(concept, timeframe, direction, daily trend) has 30+ finished cases averaging at least +0.05R
+with the lower bound above zero, otherwise **Skip**. Paper only; not trade advice.

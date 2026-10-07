@@ -20,3 +20,4 @@ for tf in 60 240; do
         --live-from 2026-10-01 2>/dev/null
     "$bin"/ta_paper verify "paper/crypto_concepts/tf$tf" >/dev/null || { echo "journal check FAILED for tf$tf"; exit 1; }
 done
+scripts/export_live_ui.py paper/crypto_concepts "$data"

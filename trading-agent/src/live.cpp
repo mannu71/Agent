@@ -125,8 +125,8 @@ LiveReport write_live(const std::string& dir, const std::vector<Case>& cases, co
         }
         setups << format_minutes(s.t) << ',' << s.pattern << ',' << s.symbol << ',' << s.tf << ',' << s.side << ','
                << s.order << ',' << st << ',' << (by_agent ? 1 : 0) << ','
-               << (c.filled ? format_minutes(c.entry_t) : "") << ',' << c.entry_px << ',' << s.stop << ','
-               << c.target_px << ',' << (c.filled ? format_minutes(c.exit_t) : "") << ',' << c.exit_px << ','
+               << (c.filled ? format_minutes(c.entry_t) : "") << ',' << (c.filled ? c.entry_px : s.entry) << ','
+               << s.stop << ',' << (c.filled ? c.target_px : s.target) << ',' << (c.filled ? format_minutes(c.exit_t) : "") << ',' << c.exit_px << ','
                << (c.filled ? c.r_net : 0) << ',' << c.exit_reason << ',' << s.ctx.trend << ',' << s.ctx.session << ','
                << s.ctx.vol << ',' << s.ctx.vwap << ',' << s.ctx.flow << '\n';
     }
@@ -155,6 +155,12 @@ LiveReport write_live(const std::string& dir, const std::vector<Case>& cases, co
             digest << "AGENT CLOSES " << t.symbol << ' ' << t.sleeve << ' ' << t.exit_reason << ' ' << t.r_multiple
                    << "R, P&L " << t.pnl << '\n';
         }
+    }
+
+    std::ofstream mem((fs::path(dir) / "memory.csv").string());
+    mem << "key,cases,mean_r,lower_r,approved\n";
+    for (const auto& [k, st] : agent.memory_now) {
+        mem << k << ',' << st.n << ',' << st.mean << ',' << st.lower << ',' << (st.approved ? 1 : 0) << '\n';
     }
 
     std::ofstream sum((fs::path(dir) / "summary.txt").string());

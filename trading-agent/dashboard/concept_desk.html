@@ -1,0 +1,267 @@
+<title>Concept Desk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: a trading-desk board. Decision first (should I trade?), then live setups, then the evidence. */
+:root {
+  --bg: #eef1f5;
+  --panel: #ffffff;
+  --ink: #142030;
+  --muted: #5a6778;
+  --line: #d6dce5;
+  --accent: #2f5bd3;
+  --long: #157a50;
+  --long-bg: #e2f3ea;
+  --short: #b8402a;
+  --short-bg: #f8e6e1;
+  --warn: #8a5a00;
+  --warn-bg: #fbf0d9;
+  --chip: #e8ecf2;
+  --display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1520; --panel: #172030; --ink: #e4e9f1; --muted: #93a0b3; --line: #2a3546;
+    --accent: #7d9dff; --long: #4fc28c; --long-bg: #12301f; --short: #f08a73; --short-bg: #3a1d17;
+    --warn: #f0c060; --warn-bg: #352a12; --chip: #222d3f; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1520; --panel: #172030; --ink: #e4e9f1; --muted: #93a0b3; --line: #2a3546;
+  --accent: #7d9dff; --long: #4fc28c; --long-bg: #12301f; --short: #f08a73; --short-bg: #3a1d17;
+  --warn: #f0c060; --warn-bg: #352a12; --chip: #222d3f; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 14px/1.5 var(--body); }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: 16px; padding-block: 20px 48px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
+.wrap > *, .split > *, .decision > * { min-width: 0; }
+h1, h2, h3 { font-family: var(--display); margin: 0; text-wrap: balance; letter-spacing: 0.01em; }
+h1 { font-size: 30px; font-weight: 700; }
+h2 { font-size: 19px; font-weight: 600; }
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+.label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+header { display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: end; justify-content: space-between; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--muted); }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--long); margin-right: 6px; vertical-align: 1px; }
+.dot.stale { background: var(--warn); }
+.notice { background: var(--warn-bg); color: var(--warn); border: 1px solid color-mix(in srgb, var(--warn) 30%, transparent); border-radius: 8px; padding: 10px 14px; font-size: 13px; }
+.notice strong { font-weight: 600; }
+.coins { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.coin { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; display: grid; gap: 2px; min-width: 0; }
+.coin .sym { font-family: var(--display); font-weight: 600; font-size: 15px; }
+.coin .px { font-size: 18px; }
+.up { color: var(--long); } .down { color: var(--short); }
+.tabs { display: inline-flex; background: var(--chip); border-radius: 8px; padding: 3px; gap: 3px; }
+.tabs button { font: 600 13px var(--body); color: var(--muted); background: transparent; border: 0; border-radius: 6px; padding: 6px 14px; cursor: pointer; }
+.tabs button[aria-selected="true"] { background: var(--panel); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+.tabs button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.bar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+.decision { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: grid; gap: 12px; }
+.verdict { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+.state { font-family: var(--display); font-weight: 700; font-size: 22px; padding: 4px 12px; border-radius: 6px; }
+.state.wait { background: var(--chip); color: var(--ink); }
+.state.go { background: var(--long-bg); color: var(--long); }
+.reason { max-width: 72ch; }
+.closest { display: grid; gap: 6px; }
+.meter { display: grid; grid-template-columns: minmax(0, 1fr) 110px 120px; gap: 10px; align-items: center; font-size: 13px; }
+.meter .track { height: 6px; background: var(--chip); border-radius: 3px; position: relative; overflow: hidden; }
+.meter .fill { position: absolute; top: 0; bottom: 0; background: var(--accent); }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; gap: 12px; min-width: 0; }
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 600; padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td { padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td.r, th.r { text-align: right; }
+tr:last-child td { border-bottom: 0; }
+.pill { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; letter-spacing: 0.02em; }
+.pill.long { background: var(--long-bg); color: var(--long); }
+.pill.short { background: var(--short-bg); color: var(--short); }
+.pill.skip { background: var(--chip); color: var(--muted); }
+.pill.ok { background: var(--long-bg); color: var(--long); }
+.pill.pending { background: var(--warn-bg); color: var(--warn); }
+.pill.open { background: var(--chip); color: var(--ink); }
+.split { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 18px; }
+@media (max-width: 860px) { .split { grid-template-columns: minmax(0, 1fr); } .meter { grid-template-columns: minmax(0, 1fr) 90px; } .meter .why { display: none; } }
+.rbar { display: inline-block; height: 8px; border-radius: 2px; vertical-align: middle; }
+details { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+summary { cursor: pointer; font-family: var(--display); font-weight: 600; font-size: 16px; }
+details ol { margin: 10px 0 0; padding-left: 20px; display: grid; gap: 6px; max-width: 80ch; }
+.empty { padding: 28px; text-align: center; color: var(--muted); }
+@media (prefers-reduced-motion: no-preference) { .coin, .panel, .decision { transition: background-color .2s; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <div class="label">Paper trading · crypto · institutional concepts</div>
+      <h1>Concept Desk</h1>
+    </div>
+    <div class="meta" id="meta"><span><span class="dot stale"></span>Waiting for data</span></div>
+  </header>
+
+  <div class="notice"><strong>Paper only.</strong> Every concept on this desk lost money after fees in the 2020–2026 backtests on BTC, ETH, SOL, XRP and BNB. The page shows what each concept sees live and whether the agent's memory would act on it. It is not trade advice.</div>
+
+  <section class="coins" id="coins" aria-label="Prices"></section>
+
+  <div class="bar">
+    <div class="tabs" role="tablist" aria-label="Timeframe">
+      <button id="tab-60" role="tab" aria-selected="true" data-tf="60">1 hour</button>
+      <button id="tab-240" role="tab" aria-selected="false" data-tf="240">4 hours</button>
+    </div>
+    <div class="muted" id="since"></div>
+  </div>
+
+  <section class="decision" id="decision" aria-label="Should I trade now">
+    <div class="empty">The first hourly update fills this page. Setups, the agent's decision and live results appear here.</div>
+  </section>
+
+  <section class="panel">
+    <div class="bar"><h2>Live setups right now</h2><span class="muted" id="active-count"></span></div>
+    <div class="scroll"><table id="active"><thead><tr>
+      <th>Signal (UTC)</th><th>Coin</th><th>Concept</th><th>Side</th><th>Status</th>
+      <th class="r">Entry</th><th class="r">Stop</th><th class="r">Target</th><th class="r">R now</th><th>Memory says</th>
+    </tr></thead><tbody></tbody></table></div>
+  </section>
+
+  <div class="split">
+    <section class="panel">
+      <h2>Concept scoreboard</h2>
+      <div class="muted" style="font-size:13px">Closed setups since the live start, net of fees, next to the 2020–23 backtest. R is the result in units of the risk taken: −1R is a full stop-out.</div>
+      <div class="scroll"><table id="score"><thead><tr>
+        <th>Concept</th><th class="r">Setups</th><th class="r">Closed</th><th class="r">Win %</th><th class="r">Live R</th><th class="r">Backtest R (long / short)</th>
+      </tr></thead><tbody></tbody></table></div>
+    </section>
+    <section class="panel">
+      <h2>Recently closed</h2>
+      <div class="scroll"><table id="recent"><thead><tr>
+        <th>Closed (UTC)</th><th>Coin</th><th>Concept</th><th>Side</th><th class="r">R</th>
+      </tr></thead><tbody></tbody></table></div>
+    </section>
+  </div>
+
+  <details>
+    <summary>How the desk decides</summary>
+    <ol>
+      <li>Every hour the newest 1-minute Binance prices arrive. They are combined into 1-hour and 4-hour candles; a candle is used only after it closes.</li>
+      <li>Each concept is an exact rule (sweep of a swing level, fair value gap, order block, change of character, higher low, Wyckoff spring, 80% rule). A match becomes a setup with an entry, a stop beyond the pattern and a target at 2R or the edge of the range.</li>
+      <li>Every setup is played out minute by minute with Delta Exchange fees, slippage and funding. Its result goes into the memory, traded or not.</li>
+      <li>The agent takes a setup only if at least 30 past setups in the same situation (concept, timeframe, direction, daily trend) averaged +0.05R or better, with the average reliably above zero. Until then it says no trade.</li>
+      <li>Rules were frozen on 7 Oct 2026; everything from 1 Oct is unseen data. The full record is a tamper-evident journal in the repository.</li>
+    </ol>
+  </details>
+</div>
+
+<script>
+(function () {
+  let state = null;
+  let tf = "60";
+  try { tf = localStorage.getItem("desk-tf") || "60"; } catch (e) {}
+
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  function px(v) {
+    if (v == null) return "–";
+    const d = v >= 1000 ? 1 : v >= 10 ? 2 : 4;
+    return v.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
+  }
+  const rfmt = (v) => (v == null ? "–" : (v > 0 ? "+" : "") + v.toFixed(2) + "R");
+  const rcls = (v) => (v == null ? "" : v > 0 ? "up" : v < 0 ? "down" : "");
+  const sideName = (s) => (s === "long" ? "Long" : "Short");
+  const keyName = (k) => {
+    const [p, t, side, trend] = k.split("|");
+    const names = { sweep: "Liquidity sweep reversal", sweep_absorb: "Sweep + absorption", sweep_cont: "Sweep continuation",
+      fvg: "Fair value gap", ob: "Order block", choch: "Change of character", hl_pullback: "Higher-low pullback",
+      spring: "Wyckoff spring / upthrust", va80: "80% value-area rule" };
+    return `${names[p] || p} · ${side} · ${trend}trend`;
+  };
+
+  function memoryChip(m) {
+    if (!m) return '<span class="pill skip">Too few past cases</span>';
+    if (m.approved) return `<span class="pill ok">Trade · ${rfmt(m.mean_r)} over ${m.cases}</span>`;
+    return `<span class="pill skip">Skip · ${rfmt(m.mean_r)} over ${m.cases.toLocaleString()}</span>`;
+  }
+
+  function render() {
+    for (const b of document.querySelectorAll(".tabs button")) b.setAttribute("aria-selected", String(b.dataset.tf === tf));
+    if (!state) return;
+    const ageMin = (Date.now() - Date.parse(state.data_to.replace(" ", "T") + ":00Z")) / 60000;
+    $("meta").innerHTML = `<span><span class="dot${ageMin > 90 ? " stale" : ""}"></span>Prices to ${esc(state.data_to)} UTC</span>` +
+      `<span>Updated hourly · last ${esc(state.updated)} UTC</span>`;
+    $("coins").innerHTML = state.coins.map((c) => `
+      <div class="coin"><span class="sym">${esc(c.symbol)}</span>
+        <span class="px num">${px(c.price)}</span>
+        <span class="num ${c.change_24h >= 0 ? "up" : "down"}">${c.change_24h >= 0 ? "+" : ""}${c.change_24h.toFixed(2)}% 24h</span>
+        <span class="num muted" style="font-size:12px">${px(c.low_24h)} – ${px(c.high_24h)}</span></div>`).join("");
+
+    const t = state.timeframes.find((x) => String(x.tf) === tf) || state.timeframes[0];
+    $("since").textContent = `Live since ${state.live_from} UTC · ${t.totals.setups} setups · ${t.totals.closed} closed · average ${rfmt(t.totals.mean_r)}`;
+
+    const a = t.agent;
+    let html;
+    if (a.open.length) {
+      html = `<div class="verdict"><span class="state go">Paper trade open</span><span class="label">${esc(t.label)} agent</span></div>` +
+        a.open.map((o) => `<div class="reason"><strong>${esc(o.symbol)} ${o.side > 0 ? "long" : "short"}</strong> (${esc(o.pattern)}) from ${esc(o.entry_time)} UTC at <span class="num">${px(o.entry)}</span>, stop <span class="num">${px(o.stop)}</span>, target <span class="num">${px(o.target)}</span>. Now <span class="num ${rcls(o.unrealised_r)}">${rfmt(o.unrealised_r)}</span>.</div>`).join("");
+    } else {
+      html = `<div class="verdict"><span class="state wait">No trade</span><span class="label">${esc(t.label)} agent</span></div>
+        <div class="reason">The memory approves none of the ${a.situations} situations it has seen 30+ times: none averaged +0.05R with the average reliably above zero after fees. The closest:</div>`;
+    }
+    const lo = Math.min(-0.3, ...a.closest.map((c) => c.lower_r)), hi = Math.max(0.15, ...a.closest.map((c) => c.mean_r));
+    const pos = (v) => ((v - lo) / (hi - lo)) * 100;
+    html += `<div class="closest">${a.closest.slice(0, 4).map((c) => `
+      <div class="meter"><span>${esc(keyName(c.key))}</span>
+        <span class="track" title="lower bound to mean"><span class="fill" style="left:${pos(Math.min(c.lower_r, c.mean_r))}%;width:${Math.max(1, pos(c.mean_r) - pos(c.lower_r))}%"></span></span>
+        <span class="num why muted">${rfmt(c.mean_r)} (low ${rfmt(c.lower_r)})</span></div>`).join("")}</div>
+      <div class="muted" style="font-size:12px">Closed paper trades: ${a.closed} · P&amp;L ₹${a.pnl.toLocaleString("en-IN", { maximumFractionDigits: 0 })} on ₹10,00,000 paper capital, 0.5% risk per trade.</div>`;
+    $("decision").innerHTML = html;
+
+    $("active-count").textContent = `${t.active.length} pending or open`;
+    $("active").querySelector("tbody").innerHTML = t.active.length ? t.active.map((s) => `
+      <tr><td class="num">${esc(s.time.slice(5))}</td><td>${esc(s.symbol)}</td><td>${esc(s.name)}</td>
+      <td><span class="pill ${s.side}">${sideName(s.side)}</span></td>
+      <td><span class="pill ${s.status}">${s.status === "pending" ? s.order + " order waiting" : "open"}</span></td>
+      <td class="r num">${px(s.entry)}</td><td class="r num">${px(s.stop)}</td><td class="r num">${px(s.target)}</td>
+      <td class="r num ${rcls(s.status === "open" ? s.r : null)}">${s.status === "open" ? rfmt(s.r) : "–"}</td>
+      <td>${memoryChip(s.memory)}</td></tr>`).join("") : `<tr><td colspan="10" class="empty">No setups waiting or open on this timeframe.</td></tr>`;
+
+    const maxAbs = Math.max(0.5, ...t.scoreboard.map((s) => Math.abs(s.mean_r || 0)));
+    $("score").querySelector("tbody").innerHTML = t.scoreboard.map((s) => `
+      <tr><td>${esc(s.name)}</td><td class="r num">${s.setups}</td><td class="r num">${s.closed}</td>
+      <td class="r num">${s.closed ? Math.round((100 * s.wins) / s.closed) + "%" : "–"}</td>
+      <td class="r num ${rcls(s.mean_r)}">${s.mean_r == null ? "–" : `<span class="rbar" style="width:${Math.round((Math.abs(s.mean_r) / maxAbs) * 40)}px;background:var(${s.mean_r >= 0 ? "--long" : "--short"})"></span> ${rfmt(s.mean_r)}`}</td>
+      <td class="r num"><span class="${rcls(s.backtest_long)}">${rfmt(s.backtest_long)}</span> / <span class="${rcls(s.backtest_short)}">${rfmt(s.backtest_short)}</span></td></tr>`).join("");
+
+    $("recent").querySelector("tbody").innerHTML = t.recent.length ? t.recent.slice(0, 15).map((s) => `
+      <tr><td class="num">${esc(s.exit_time.slice(5))}</td><td>${esc(s.symbol)}</td><td>${esc(s.name)}</td>
+      <td><span class="pill ${s.side}">${sideName(s.side)}</span></td><td class="r num ${rcls(s.r)}">${rfmt(s.r)}</td></tr>`).join("")
+      : `<tr><td colspan="5" class="empty">Nothing closed yet.</td></tr>`;
+  }
+
+  for (const b of document.querySelectorAll(".tabs button")) {
+    b.addEventListener("click", () => {
+      tf = b.dataset.tf;
+      try { localStorage.setItem("desk-tf", tf); } catch (e) {}
+      render();
+    });
+  }
+  render();
+
+  (async () => {
+    const db = window.claude ? await window.claude.use("db") : null;
+    if (!db) {
+      $("decision").innerHTML = '<div class="empty">Live data is not available in this view. Open the page on claude.ai while signed in.</div>';
+      return;
+    }
+    db.doc("live/state").onSnapshot(
+      (snap) => {
+        if (!snap.exists) return;
+        state = snap.data();
+        render();
+      },
+      () => { $("meta").innerHTML = '<span><span class="dot stale"></span>Live updates paused. Reload the page.</span>'; }
+    );
+  })();
+})();
+</script>

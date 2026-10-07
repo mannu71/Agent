@@ -18,8 +18,8 @@ time,pattern,symbol,tf,side,order,status,agent,entry_time,entry,stop,target,exit
 2026-10-02 15:00,sweep,BNB,60,1,M,closed,0,2026-10-02 15:00,775.615,772.533,781.779,2026-10-02 15:41,772.379,-1.30342,stop,up,ny,mid,below,with
 2026-10-02 15:00,sweep_cont,BNB,60,-1,M,closed,0,2026-10-02 15:00,775.305,782.777,760.361,2026-10-02 18:47,760.361,1.92286,target,up,ny,mid,below,against
 2026-10-02 16:00,choch,BNB,60,-1,M,closed,0,2026-10-02 16:00,773.305,783.705,752.507,2026-10-03 17:05,783.861,-1.11326,stop,up,ny,mid,below,against
-2026-10-02 16:00,ob,BNB,60,-1,L,unfilled,0,,0,782.605,0,,0,0,,up,ny,mid,below,against
-2026-10-02 16:00,fvg,BNB,60,-1,L,unfilled,0,,0,784.875,0,,0,0,,up,ny,mid,below,against
+2026-10-02 16:00,ob,BNB,60,-1,L,unfilled,0,,777.21,782.605,766.421,,0,0,,up,ny,mid,below,against
+2026-10-02 16:00,fvg,BNB,60,-1,L,unfilled,0,,778,784.875,764.251,,0,0,,up,ny,mid,below,against
 2026-10-02 19:00,sweep,BNB,60,1,M,closed,0,2026-10-02 19:00,764.283,759.875,773.098,2026-10-03 13:37,773.098,1.83786,target,up,ny,mid,below,against
 2026-10-02 19:00,sweep_absorb,BNB,60,1,M,closed,0,2026-10-02 19:00,764.283,759.875,773.098,2026-10-03 13:37,773.098,1.83786,target,up,ny,mid,below,against
 2026-10-02 19:00,sweep_cont,BNB,60,-1,M,closed,0,2026-10-02 19:00,763.977,774.875,742.182,2026-10-03 14:01,775.03,-1.1015,stop,up,ny,mid,below,with
@@ -27,9 +27,9 @@ time,pattern,symbol,tf,side,order,status,agent,entry_time,entry,stop,target,exit
 2026-10-02 20:00,fvg,BNB,60,-1,L,closed,0,2026-10-03 00:03,768.895,775.406,755.874,2026-10-03 14:19,775.561,-1.12806,stop,up,ny,mid,below,with
 2026-10-03 00:00,va80,BNB,60,-1,M,closed,0,2026-10-03 00:00,768.096,784.874,766.687,2026-10-03 04:27,766.687,0.0494138,target,up,late,mid,below,against
 2026-10-03 05:00,hl_pullback,BNB,60,-1,M,closed,0,2026-10-03 05:00,766.877,770.287,760.056,2026-10-03 12:00,770.441,-1.29025,stop,up,asia,mid,below,against
-2026-10-03 15:00,fvg,BNB,60,1,L,unfilled,0,,0,769.204,0,,0,0,,up,ny,low,above,against
+2026-10-03 15:00,fvg,BNB,60,1,L,unfilled,0,,773.02,769.204,780.652,,0,0,,up,ny,low,above,against
 2026-10-03 15:00,va80,BNB,60,1,M,closed,0,2026-10-03 15:00,778.686,764.544,782.531,2026-10-03 17:04,782.531,0.231906,target,up,ny,low,above,against
-2026-10-03 16:00,fvg,BNB,60,1,L,unfilled,0,,0,771.041,0,,0,0,,up,ny,low,above,against
+2026-10-03 16:00,fvg,BNB,60,1,L,unfilled,0,,775.25,771.041,783.668,,0,0,,up,ny,low,above,against
 2026-10-03 19:00,fvg,BNB,60,1,L,closed,0,2026-10-04 00:48,784.235,776.116,800.474,2026-10-05 01:26,800.474,1.93122,target,up,ny,mid,above,with
 2026-10-04 02:00,va80,BNB,60,-1,M,closed,0,2026-10-04 02:00,784.103,788.029,764.83,2026-10-04 06:20,788.186,-1.25123,stop,up,asia,mid,below,with
 2026-10-04 06:00,hl_pullback,BNB,60,1,M,closed,0,2026-10-04 06:00,786.857,781.822,796.928,2026-10-04 22:15,796.928,1.85848,target,up,asia,mid,above,with
@@ -43,7 +43,7 @@ time,pattern,symbol,tf,side,order,status,agent,entry_time,entry,stop,target,exit
 2026-10-04 23:00,ob,BNB,60,1,L,closed,0,2026-10-05 04:32,789.36,787.931,792.217,2026-10-05 05:59,792.217,1.76855,target,up,late,low,above,with
 2026-10-04 23:00,fvg,BNB,60,1,L,closed,0,2026-10-05 03:50,792.26,788.651,799.477,2026-10-05 04:32,788.494,-1.1988,stop,up,late,low,above,with
 2026-10-05 03:00,fvg,BNB,60,1,L,closed,0,2026-10-05 03:21,798.115,792.752,808.84,2026-10-05 03:50,792.594,-1.13413,stop,up,asia,mid,below,with
-2026-10-05 05:00,fvg,BNB,60,-1,L,unfilled,0,,0,810.425,0,,0,0,,up,asia,mid,below,with
+2026-10-05 05:00,fvg,BNB,60,-1,L,unfilled,0,,796.13,810.425,767.541,,0,0,,up,asia,mid,below,with
 2026-10-05 05:00,va80,BNB,60,-1,M,closed,0,2026-10-05 05:00,789.442,810.425,785.928,2026-10-05 14:34,785.928,0.136694,target,up,asia,mid,below,with
 2026-10-05 08:00,hl_pullback,BNB,60,1,M,closed,0,2026-10-05 08:00,791.978,787.887,800.161,2026-10-05 08:47,787.73,-1.23347,stop,up,london,mid,below,against
 2026-10-05 09:00,sweep,BNB,60,1,M,closed,0,2026-10-05 09:00,788.848,787.127,792.29,2026-10-05 09:19,786.969,-1.55103,stop,up,london,mid,below,against
@@ -68,12 +68,12 @@ time,pattern,symbol,tf,side,order,status,agent,entry_time,entry,stop,target,exit
 2026-10-06 19:00,hl_pullback,BNB,60,-1,M,closed,0,2026-10-06 19:00,780.694,787.163,767.755,2026-10-07 02:00,767.755,1.90537,target,up,ny,mid,below,with
 2026-10-07 01:00,sweep,BNB,60,1,M,closed,0,2026-10-07 01:00,779.016,776.828,783.392,2026-10-07 01:52,776.672,-1.43038,stop,up,asia,low,above,against
 2026-10-07 01:00,sweep_absorb,BNB,60,1,M,closed,0,2026-10-07 01:00,779.016,776.828,783.392,2026-10-07 01:52,776.672,-1.43038,stop,up,asia,low,above,against
-2026-10-07 02:00,ob,BNB,60,-1,L,pending,0,,0,780.549,0,,0,0,,up,asia,mid,below,with
-2026-10-07 03:00,fvg,BNB,60,-1,L,open,0,2026-10-07 07:44,773.78,780.042,761.255,2026-10-07 15:59,769.904,0.520027,end_of_data,up,asia,mid,below,with
-2026-10-07 04:00,fvg,BNB,60,-1,L,open,0,2026-10-07 05:32,769.055,779.499,748.168,2026-10-07 15:59,769.904,-0.142494,end_of_data,up,asia,mid,below,against
+2026-10-07 02:00,ob,BNB,60,-1,L,pending,0,,778.8,780.549,775.303,,0,0,,up,asia,mid,below,with
+2026-10-07 03:00,fvg,BNB,60,-1,L,open,0,2026-10-07 07:44,773.78,780.042,761.255,2026-10-07 16:24,770.554,0.415515,end_of_data,up,asia,mid,below,with
+2026-10-07 04:00,fvg,BNB,60,-1,L,open,0,2026-10-07 05:32,769.055,779.499,748.168,2026-10-07 16:24,770.554,-0.205159,end_of_data,up,asia,mid,below,against
 2026-10-07 09:00,fvg,BNB,60,1,L,closed,0,2026-10-07 09:13,771.13,768.134,777.121,2026-10-07 10:07,767.981,-1.23384,stop,up,london,mid,above,against
-2026-10-07 11:00,fvg,BNB,60,-1,L,pending,0,,0,776.075,0,,0,0,,up,london,mid,below,with
-2026-10-07 12:00,hl_pullback,BNB,60,-1,M,open,0,2026-10-07 12:00,767.696,776.069,750.952,2026-10-07 15:59,769.904,-0.360055,end_of_data,up,london,mid,below,with
+2026-10-07 11:00,fvg,BNB,60,-1,L,open,0,2026-10-07 16:05,771.325,776.075,761.825,2026-10-07 16:24,770.554,0.0480682,end_of_data,up,london,mid,below,with
+2026-10-07 12:00,hl_pullback,BNB,60,-1,M,open,0,2026-10-07 12:00,767.696,776.069,750.952,2026-10-07 16:24,770.554,-0.438223,end_of_data,up,london,mid,below,with
 2026-10-01 01:00,sweep,BTC,60,1,M,closed,0,2026-10-01 01:00,83525.7,83383.6,83809.9,2026-10-01 04:06,83809.9,1.56538,target,up,asia,mid,below,with
 2026-10-01 01:00,sweep_cont,BTC,60,-1,M,closed,0,2026-10-01 01:00,83492.3,83706.2,83064.6,2026-10-01 03:43,83722.9,-1.4825,stop,up,asia,mid,below,against
 2026-10-01 03:00,choch,BTC,60,-1,M,closed,0,2026-10-01 03:00,83474.1,85693,79036.3,2026-10-02 04:19,85710.1,-1.05775,stop,up,asia,mid,below,with
@@ -93,12 +93,12 @@ time,pattern,symbol,tf,side,order,status,agent,entry_time,entry,stop,target,exit
 2026-10-02 13:00,sweep,BTC,60,-1,M,closed,0,2026-10-02 13:00,86792.6,87269.4,85839,2026-10-02 14:34,85839,1.86941,target,up,london,mid,above,against
 2026-10-02 13:00,sweep_absorb,BTC,60,-1,M,closed,0,2026-10-02 13:00,86792.6,87269.4,85839,2026-10-02 14:34,85839,1.86941,target,up,london,mid,above,against
 2026-10-02 13:00,sweep_cont,BTC,60,1,M,closed,0,2026-10-02 13:00,86827.4,86258.6,87965,2026-10-02 14:16,86241.3,-1.18488,stop,up,london,mid,above,with
-2026-10-02 16:00,fvg,BTC,60,-1,L,unfilled,0,,0,87207.6,0,,0,0,,up,ny,high,below,with
+2026-10-02 16:00,fvg,BTC,60,-1,L,unfilled,0,,86112.3,87207.6,83921.5,,0,0,,up,ny,high,below,with
 2026-10-02 18:00,sweep,BTC,60,1,M,closed,0,2026-10-02 18:00,84791.7,84240.2,85894.7,2026-10-02 18:39,84223.4,-1.18503,stop,up,ny,high,below,against
 2026-10-02 18:00,sweep_absorb,BTC,60,1,M,closed,0,2026-10-02 18:00,84791.7,84240.2,85894.7,2026-10-02 18:39,84223.4,-1.18503,stop,up,ny,high,below,against
 2026-10-02 18:00,sweep_cont,BTC,60,-1,M,closed,0,2026-10-02 18:00,84757.8,85317.8,83637.8,2026-10-04 09:47,85334.9,-1.2576,stop,up,ny,high,below,with
 2026-10-02 19:00,choch,BTC,60,-1,M,closed,0,2026-10-02 19:00,84245.2,87282.7,78170,2026-10-04 19:00,85355.9,-0.410226,time,up,ny,high,below,with
-2026-10-02 19:00,ob,BTC,60,-1,L,unfilled,0,,0,87282.7,0,,0,0,,up,ny,high,below,with
+2026-10-02 19:00,ob,BTC,60,-1,L,unfilled,0,,86308,87282.7,84358.5,,0,0,,up,ny,high,below,with
 2026-10-02 20:00,va80,BTC,60,-1,M,closed,0,2026-10-02 20:00,84298.4,87281,83311.3,2026-10-04 20:00,85445.1,-0.429875,time,up,ny,high,below,with
 2026-10-03 08:00,hl_pullback,BTC,60,-1,M,closed,0,2026-10-03 08:00,84543.1,84758.4,84112.5,2026-10-03 12:18,84775.4,-1.49301,stop,up,london,low,below,with
 2026-10-03 13:00,choch,BTC,60,1,M,closed,0,2026-10-03 13:00,84905,83861.2,86992.6,2026-10-05 01:28,86992.6,1.90558,target,up,london,low,above,with
@@ -123,22 +123,22 @@ time,pattern,symbol,tf,side,order,status,agent,entry_time,entry,stop,target,exit
 2026-10-05 16:00,fvg,BTC,60,-1,L,closed,0,2026-10-05 19:18,85743,86535.2,84158.6,2026-10-06 14:53,86552.5,-1.12461,stop,up,ny,mid,below,with
 2026-10-05 17:00,sweep,BTC,60,1,M,closed,0,2026-10-05 17:00,85317.1,84927.4,86096.3,2026-10-06 01:01,86096.3,1.82437,target,up,ny,mid,below,against
 2026-10-05 17:00,sweep_absorb,BTC,60,1,M,closed,0,2026-10-05 17:00,85317.1,84927.4,86096.3,2026-10-06 01:01,86096.3,1.82437,target,up,ny,mid,below,against
-2026-10-05 17:00,fvg,BTC,60,-1,L,open,0,2026-10-05 17:57,85390.4,86769.7,82631.7,2026-10-07 15:59,83470.9,1.31329,end_of_data,up,ny,mid,below,with
+2026-10-05 17:00,fvg,BTC,60,-1,L,open,0,2026-10-05 17:57,85390.4,86769.7,82631.7,2026-10-07 16:24,83516.7,1.27977,end_of_data,up,ny,mid,below,with
 2026-10-06 05:00,hl_pullback,BTC,60,-1,M,closed,0,2026-10-06 05:00,85606.9,86164.7,84491.3,2026-10-06 09:51,86181.9,-1.19419,stop,up,asia,mid,below,with
 2026-10-06 10:00,sweep,BTC,60,-1,M,closed,0,2026-10-06 10:00,85974.8,86266.2,85392,2026-10-06 11:15,86283.4,-1.3594,stop,up,london,mid,above,with
 2026-10-06 10:00,sweep_cont,BTC,60,1,M,closed,0,2026-10-06 10:00,86009.2,85621.8,86783.9,2026-10-06 16:34,85604.7,-1.28396,stop,up,london,mid,above,against
 2026-10-06 23:00,hl_pullback,BTC,60,1,M,closed,0,2026-10-06 23:00,85551.6,85386.9,85881,2026-10-06 23:32,85369.9,-1.62603,stop,up,late,mid,below,with
 2026-10-07 00:00,sweep,BTC,60,1,M,closed,0,2026-10-07 00:00,85567,85313.2,86074.8,2026-10-07 01:23,85296.1,-1.40958,stop,up,late,mid,below,against
 2026-10-07 00:00,sweep_absorb,BTC,60,1,M,closed,0,2026-10-07 00:00,85567,85313.2,86074.8,2026-10-07 01:23,85296.1,-1.40958,stop,up,late,mid,below,against
-2026-10-07 02:00,choch,BTC,60,-1,M,open,0,2026-10-07 02:00,84374.6,86737.6,79648.6,2026-10-07 15:59,83470.9,0.340675,end_of_data,up,asia,mid,below,with
-2026-10-07 02:00,ob,BTC,60,-1,L,pending,0,,0,85657.8,0,,0,0,,up,asia,mid,below,with
-2026-10-07 03:00,fvg,BTC,60,-1,L,pending,0,,0,85640.9,0,,0,0,,up,asia,mid,below,with
-2026-10-07 04:00,fvg,BTC,60,-1,L,open,0,2026-10-07 05:50,84310.9,85582.4,81768.1,2026-10-07 15:59,83470.9,0.60618,end_of_data,up,asia,mid,below,against
-2026-10-07 10:00,hl_pullback,BTC,60,-1,M,open,0,2026-10-07 10:00,83787.2,84415.3,82531,2026-10-07 15:59,83470.9,0.360467,end_of_data,up,london,mid,below,with
+2026-10-07 02:00,choch,BTC,60,-1,M,open,0,2026-10-07 02:00,84374.6,86737.6,79648.6,2026-10-07 16:24,83516.7,0.32111,end_of_data,up,asia,mid,below,with
+2026-10-07 02:00,ob,BTC,60,-1,L,pending,0,,85346.8,85657.8,84724.7,,0,0,,up,asia,mid,below,with
+2026-10-07 03:00,fvg,BTC,60,-1,L,pending,0,,84966.6,85640.9,83618.1,,0,0,,up,asia,mid,below,with
+2026-10-07 04:00,fvg,BTC,60,-1,L,open,0,2026-10-07 05:50,84310.9,85582.4,81768.1,2026-10-07 16:24,83516.7,0.569818,end_of_data,up,asia,mid,below,against
+2026-10-07 10:00,hl_pullback,BTC,60,-1,M,open,0,2026-10-07 10:00,83787.2,84415.3,82531,2026-10-07 16:24,83516.7,0.286867,end_of_data,up,london,mid,below,with
 2026-10-07 11:00,sweep,BTC,60,1,M,closed,0,2026-10-07 11:00,83763.8,83405,84481.4,2026-10-07 13:02,83388.3,-1.28535,stop,up,london,mid,below,against
 2026-10-07 11:00,sweep_absorb,BTC,60,1,M,closed,0,2026-10-07 11:00,83763.8,83405,84481.4,2026-10-07 13:02,83388.3,-1.28535,stop,up,london,mid,below,against
 2026-10-07 11:00,sweep_cont,BTC,60,-1,M,closed,0,2026-10-07 11:00,83730.3,83973,83244.9,2026-10-07 13:35,83244.9,1.74776,target,up,london,mid,below,with
-2026-10-07 15:00,fvg,BTC,60,-1,L,open,0,2026-10-07 15:50,83365.6,83805.7,82485.3,2026-10-07 15:59,83470.9,-0.372436,end_of_data,up,ny,mid,below,against
+2026-10-07 15:00,fvg,BTC,60,-1,L,open,0,2026-10-07 15:50,83365.6,83805.7,82485.3,2026-10-07 16:24,83516.7,-0.477461,end_of_data,up,ny,mid,below,against
 2026-10-01 06:00,fvg,ETH,60,1,L,closed,0,2026-10-01 07:20,2701.06,2683.54,2736.1,2026-10-01 07:26,2683,-1.13822,stop,up,asia,mid,above,with
 2026-10-01 09:00,fvg,ETH,60,-1,L,closed,0,2026-10-01 10:47,2700.3,2723.74,2653.41,2026-10-02 03:01,2724.28,-1.12777,stop,up,london,mid,below,against
 2026-10-01 10:00,hl_pullback,ETH,60,-1,M,closed,0,2026-10-01 10:00,2690.64,2723.7,2624.52,2026-10-02 03:01,2724.25,-1.11569,stop,up,london,mid,below,against
@@ -148,7 +148,7 @@ time,pattern,symbol,tf,side,order,status,agent,entry_time,entry,stop,target,exit
 2026-10-02 02:00,ob,ETH,60,1,L,closed,0,2026-10-02 14:55,2699.19,2687.79,2721.99,2026-10-02 16:42,2687.25,-1.21766,stop,up,asia,mid,above,with
 2026-10-02 03:00,sweep_cont,ETH,60,1,M,closed,0,2026-10-02 03:00,2721.59,2707.29,2750.2,2026-10-02 08:17,2750.2,1.85385,target,up,asia,mid,above,with
 2026-10-02 09:00,ob,ETH,60,1,L,closed,0,2026-10-02 10:21,2742.76,2710.6,2807.07,2026-10-02 14:54,2710.06,-1.08091,stop,up,london,mid,above,with
-2026-10-02 16:00,fvg,ETH,60,-1,L,unfilled,0,,0,2771.87,0,,0,0,,up,ny,mid,below,with
+2026-10-02 16:00,fvg,ETH,60,-1,L,unfilled,0,,2727.22,2771.87,2637.91,,0,0,,up,ny,mid,below,with
 2026-10-02 17:00,sweep,ETH,60,1,M,closed,0,2026-10-02 17:00,2690.62,2685.18,2701.49,2026-10-02 17:13,2684.64,-1.5944,stop,up,ny,mid,below,against
 2026-10-02 17:00,sweep_absorb,ETH,60,1,M,closed,0,2026-10-02 17:00,2690.62,2685.18,2701.49,2026-10-02 17:13,2684.64,-1.5944,stop,up,ny,mid,below,against
 2026-10-02 17:00,sweep_cont,ETH,60,-1,M,closed,0,2026-10-02 17:00,2689.54,2706.22,2656.19,2026-10-02 18:39,2656.19,1.88419,target,up,ny,mid,below,with
@@ -158,7 +158,7 @@ time,pattern,symbol,tf,side,order,status,agent,entry_time,entry,stop,target,exit
 2026-10-03 10:00,sweep,ETH,60,-1,M,closed,0,2026-10-03 10:00,2680.18,2688.13,2664.29,2026-10-03 17:50,2688.67,-1.43859,stop,up,london,low,above,with
 2026-10-03 17:00,hl_pullback,ETH,60,1,M,closed,0,2026-10-03 17:00,2682.21,2676.46,2693.71,2026-10-04 00:20,2693.71,1.63036,target,up,ny,low,above,with
 2026-10-03 18:00,ob,ETH,60,1,L,closed,0,2026-10-03 19:03,2682.87,2677.84,2692.92,2026-10-04 00:20,2692.92,1.7508,target,up,ny,low,above,with
-2026-10-04 01:00,ob,ETH,60,1,L,unfilled,0,,0,2682.37,0,,0,0,,up,asia,low,above,with
+2026-10-04 01:00,ob,ETH,60,1,L,unfilled,0,,2688.06,2682.37,2699.44,,0,0,,up,asia,low,above,with
 2026-10-04 10:00,hl_pullback,ETH,60,1,M,closed,0,2026-10-04 10:00,2702.07,2690.46,2725.29,2026-10-04 22:20,2725.29,1.80076,target,up,london,low,above,with
 2026-10-04 18:00,hl_pullback,ETH,60,1,M,closed,0,2026-10-04 18:00,2702.68,2691.25,2725.53,2026-10-04 22:20,2725.53,1.82122,target,up,ny,low,above,with
 2026-10-04 22:00,sweep,ETH,60,-1,M,closed,0,2026-10-04 22:00,2701.93,2710.93,2683.92,2026-10-04 22:02,2711.48,-1.3609,stop,up,late,low,above,against
@@ -188,13 +188,13 @@ time,pattern,symbol,tf,side,order,status,agent,entry_time,entry,stop,target,exit
 2026-10-06 16:00,sweep,ETH,60,-1,M,closed,0,2026-10-06 16:00,2701.5,2726.42,2651.66,2026-10-07 02:00,2651.66,1.91095,target,up,ny,mid,below,with
 2026-10-06 18:00,sweep,ETH,60,1,M,closed,0,2026-10-06 18:00,2699.83,2687.99,2723.52,2026-10-06 19:09,2687.45,-1.27609,stop,up,ny,mid,below,against
 2026-10-06 18:00,sweep_absorb,ETH,60,1,M,closed,0,2026-10-06 18:00,2699.83,2687.99,2723.52,2026-10-06 19:09,2687.45,-1.27609,stop,up,ny,mid,below,against
-2026-10-07 02:00,ob,ETH,60,-1,L,pending,0,,0,2701.8,0,,0,0,,up,asia,mid,below,with
-2026-10-07 03:00,hl_pullback,ETH,60,-1,M,open,0,2026-10-07 03:00,2612.02,2702.19,2431.66,2026-10-07 15:59,2571.24,0.418706,end_of_data,up,asia,mid,below,with
-2026-10-07 03:00,fvg,ETH,60,-1,L,pending,0,,0,2701.45,0,,0,0,,up,asia,mid,below,with
-2026-10-07 04:00,fvg,ETH,60,-1,L,pending,0,,0,2698.58,0,,0,0,,up,asia,mid,below,with
-2026-10-07 10:00,hl_pullback,ETH,60,-1,M,open,0,2026-10-07 10:00,2596.48,2625.33,2538.79,2026-10-07 15:59,2571.24,0.778602,end_of_data,up,london,mid,below,with
-2026-10-07 11:00,fvg,ETH,60,-1,L,pending,0,,0,2621.3,0,,0,0,,up,london,mid,below,with
-2026-10-07 12:00,fvg,ETH,60,-1,L,pending,0,,0,2613.44,0,,0,0,,up,london,mid,below,with
+2026-10-07 02:00,ob,ETH,60,-1,L,pending,0,,2693.78,2701.8,2677.75,,0,0,,up,asia,mid,below,with
+2026-10-07 03:00,hl_pullback,ETH,60,-1,M,open,0,2026-10-07 03:00,2612.02,2702.19,2431.66,2026-10-07 16:24,2572.28,0.407014,end_of_data,up,asia,mid,below,with
+2026-10-07 03:00,fvg,ETH,60,-1,L,pending,0,,2676.89,2701.45,2627.76,,0,0,,up,asia,mid,below,with
+2026-10-07 04:00,fvg,ETH,60,-1,L,pending,0,,2638.14,2698.58,2517.25,,0,0,,up,asia,mid,below,with
+2026-10-07 10:00,hl_pullback,ETH,60,-1,M,open,0,2026-10-07 10:00,2596.48,2625.33,2538.79,2026-10-07 16:24,2572.28,0.742053,end_of_data,up,london,mid,below,with
+2026-10-07 11:00,fvg,ETH,60,-1,L,pending,0,,2603.64,2621.3,2568.3,,0,0,,up,london,mid,below,with
+2026-10-07 12:00,fvg,ETH,60,-1,L,pending,0,,2588.22,2613.44,2537.78,,0,0,,up,london,mid,below,with
 2026-10-01 03:00,hl_pullback,SOL,60,-1,M,closed,0,2026-10-01 03:00,118.176,118.68,117.169,2026-10-01 03:59,118.704,-1.28513,stop,up,asia,mid,above,with
 2026-10-01 04:00,choch,SOL,60,1,M,closed,0,2026-10-01 04:00,118.724,116.952,122.267,2026-10-01 13:05,116.929,-1.08732,stop,up,asia,mid,above,against
 2026-10-01 04:00,ob,SOL,60,1,L,closed,0,2026-10-01 07:20,118.25,117.792,119.166,2026-10-01 07:24,117.769,-1.23196,stop,up,asia,mid,above,against
@@ -211,7 +211,7 @@ time,pattern,symbol,tf,side,order,status,agent,entry_time,entry,stop,target,exit
 2026-10-02 02:00,sweep_cont,SOL,60,1,M,closed,0,2026-10-02 02:00,119.534,118.269,122.065,2026-10-02 04:21,122.065,1.9307,target,up,asia,mid,above,with
 2026-10-02 06:00,fvg,SOL,60,1,L,closed,0,2026-10-02 07:02,121.485,119.785,124.884,2026-10-02 15:07,119.761,-1.07084,stop,up,asia,mid,above,against
 2026-10-02 06:00,spring,SOL,60,-1,M,closed,0,2026-10-02 06:00,121.876,123.885,116.73,2026-10-04 06:00,120.834,0.421588,time,up,asia,mid,above,with
-2026-10-02 16:00,fvg,SOL,60,-1,L,unfilled,0,,0,123.492,0,,0,0,,up,ny,mid,below,with
+2026-10-02 16:00,fvg,SOL,60,-1,L,unfilled,0,,121.325,123.492,116.99,,0,0,,up,ny,mid,below,with
 2026-10-02 19:00,sweep,SOL,60,1,M,closed,0,2026-10-02 19:00,118.164,116.98,120.531,2026-10-04 03:33,120.531,1.8891,target,up,ny,mid,below,against
 2026-10-02 19:00,sweep_absorb,SOL,60,1,M,closed,0,2026-10-02 19:00,118.164,116.98,120.531,2026-10-04 03:33,120.531,1.8891,target,up,ny,mid,below,against
 2026-10-02 19:00,sweep_cont,SOL,60,-1,M,closed,0,2026-10-02 19:00,118.116,120,114.349,2026-10-03 17:41,120.024,-1.09374,stop,up,ny,mid,below,with
@@ -223,9 +223,9 @@ time,pattern,symbol,tf,side,order,status,agent,entry_time,entry,stop,target,exit
 2026-10-03 18:00,hl_pullback,SOL,60,1,M,closed,0,2026-10-03 18:00,120.014,119.099,121.845,2026-10-04 13:37,121.845,1.87566,target,up,ny,low,above,against
 2026-10-03 18:00,ob,SOL,60,1,L,closed,0,2026-10-03 18:12,119.79,119.399,120.573,2026-10-04 03:33,120.573,1.84135,target,up,ny,low,above,against
 2026-10-03 19:00,va80,SOL,60,1,M,closed,0,2026-10-03 19:00,119.994,118.461,123.494,2026-10-05 19:00,120.076,-0.0717829,time,up,ny,low,above,against
-2026-10-04 01:00,ob,SOL,60,1,L,unfilled,0,,0,119.538,0,,0,0,,up,asia,low,above,with
+2026-10-04 01:00,ob,SOL,60,1,L,unfilled,0,,119.8,119.538,120.324,,0,0,,up,asia,low,above,with
 2026-10-04 02:00,hl_pullback,SOL,60,1,M,closed,0,2026-10-04 02:00,120.174,119.438,121.645,2026-10-04 12:09,121.645,1.86453,target,up,asia,low,above,with
-2026-10-04 02:00,fvg,SOL,60,1,L,unfilled,0,,0,119.538,0,,0,0,,up,asia,low,above,with
+2026-10-04 02:00,fvg,SOL,60,1,L,unfilled,0,,119.875,119.538,120.548,,0,0,,up,asia,low,above,with
 2026-10-04 08:00,sweep,SOL,60,-1,M,closed,0,2026-10-04 08:00,121.126,121.371,120.635,2026-10-04 09:27,121.395,-1.60241,stop,up,london,low,above,with
 2026-10-04 08:00,sweep_cont,SOL,60,1,M,closed,0,2026-10-04 08:00,121.174,120.869,121.785,2026-10-04 08:39,120.845,-1.47887,stop,up,london,low,above,against
 2026-10-04 10:00,ob,SOL,60,1,L,closed,0,2026-10-04 10:01,121.26,120.778,122.224,2026-10-04 20:05,120.754,-1.25733,stop,up,london,low,above,with
@@ -259,14 +259,14 @@ time,pattern,symbol,tf,side,order,status,agent,entry_time,entry,stop,target,exit
 2026-10-06 14:00,choch,SOL,60,1,M,closed,0,2026-10-06 14:00,120.934,118.807,125.189,2026-10-07 02:00,118.783,-1.07604,stop,up,ny,mid,above,with
 2026-10-06 14:00,ob,SOL,60,1,L,closed,0,2026-10-06 14:08,120.65,118.807,124.336,2026-10-07 02:00,118.783,-1.06792,stop,up,ny,mid,above,with
 2026-10-06 21:00,hl_pullback,SOL,60,1,M,closed,0,2026-10-06 21:00,121.014,120.053,122.937,2026-10-07 01:23,120.029,-1.15721,stop,up,ny,mid,above,against
-2026-10-07 03:00,fvg,SOL,60,-1,L,pending,0,,0,120.787,0,,0,0,,up,asia,mid,below,with
-2026-10-07 04:00,fvg,SOL,60,-1,L,open,0,2026-10-07 05:48,118.79,120.664,115.041,2026-10-07 15:59,116.813,1.00272,end_of_data,up,asia,mid,below,with
-2026-10-07 10:00,hl_pullback,SOL,60,-1,M,open,0,2026-10-07 10:00,117.746,119.156,114.927,2026-10-07 15:59,116.813,0.572433,end_of_data,up,london,mid,below,with
+2026-10-07 03:00,fvg,SOL,60,-1,L,pending,0,,119.71,120.787,117.557,,0,0,,up,asia,mid,below,with
+2026-10-07 04:00,fvg,SOL,60,-1,L,open,0,2026-10-07 05:48,118.79,120.664,115.041,2026-10-07 16:24,116.943,0.932977,end_of_data,up,asia,mid,below,with
+2026-10-07 10:00,hl_pullback,SOL,60,-1,M,open,0,2026-10-07 10:00,117.746,119.156,114.927,2026-10-07 16:24,116.943,0.47972,end_of_data,up,london,mid,below,with
 2026-10-07 11:00,sweep,SOL,60,1,M,closed,0,2026-10-07 11:00,117.694,116.671,119.74,2026-10-07 12:25,116.647,-1.13938,stop,up,london,mid,below,against
 2026-10-07 11:00,sweep_absorb,SOL,60,1,M,closed,0,2026-10-07 11:00,117.694,116.671,119.74,2026-10-07 12:25,116.647,-1.13938,stop,up,london,mid,below,against
 2026-10-07 11:00,sweep_cont,SOL,60,-1,M,closed,0,2026-10-07 11:00,117.646,118.049,116.84,2026-10-07 12:25,116.84,1.79089,target,up,london,mid,below,with
 2026-10-07 11:00,spring,SOL,60,1,M,closed,0,2026-10-07 11:00,117.694,116.671,122,2026-10-07 12:25,116.647,-1.13938,stop,up,london,mid,below,against
-2026-10-07 14:00,fvg,SOL,60,-1,L,open,0,2026-10-07 15:55,116.8,117.885,114.631,2026-10-07 15:59,116.813,-0.0877912,end_of_data,up,ny,mid,below,with
+2026-10-07 14:00,fvg,SOL,60,-1,L,open,0,2026-10-07 15:55,116.8,117.885,114.631,2026-10-07 16:24,116.943,-0.208291,end_of_data,up,ny,mid,below,with
 2026-10-01 09:00,fvg,XRP,60,-1,L,closed,0,2026-10-01 17:19,1.4964,1.51002,1.46916,2026-10-02 04:01,1.51032,-1.1143,stop,up,london,low,below,against
 2026-10-01 11:00,sweep,XRP,60,1,M,closed,0,2026-10-01 11:00,1.4937,1.47478,1.53154,2026-10-01 14:52,1.47448,-1.09783,stop,up,london,low,above,with
 2026-10-01 11:00,sweep_cont,XRP,60,-1,M,closed,0,2026-10-01 11:00,1.4931,1.49672,1.48586,2026-10-01 12:54,1.48586,1.70212,target,up,london,low,above,against
@@ -285,14 +285,14 @@ time,pattern,symbol,tf,side,order,status,agent,entry_time,entry,stop,target,exit
 2026-10-02 11:00,sweep,XRP,60,-1,M,closed,0,2026-10-02 11:00,1.53879,1.55131,1.51376,2026-10-02 12:31,1.55162,-1.15061,stop,up,london,mid,above,with
 2026-10-02 11:00,sweep_cont,XRP,60,1,M,closed,0,2026-10-02 11:00,1.53941,1.53399,1.55024,2026-10-02 11:40,1.53369,-1.34286,stop,up,london,mid,above,against
 2026-10-02 11:00,spring,XRP,60,-1,M,closed,0,2026-10-02 11:00,1.53879,1.55131,1.4744,2026-10-02 12:31,1.55162,-1.15061,stop,up,london,mid,above,with
-2026-10-02 16:00,fvg,XRP,60,-1,L,unfilled,0,,0,1.55167,0,,0,0,,up,ny,mid,below,with
-2026-10-02 19:00,ob,XRP,60,-1,L,unfilled,0,,0,1.55681,0,,0,0,,up,ny,mid,below,against
+2026-10-02 16:00,fvg,XRP,60,-1,L,unfilled,0,,1.52205,1.55167,1.4628,,0,0,,up,ny,mid,below,with
+2026-10-02 19:00,ob,XRP,60,-1,L,unfilled,0,,1.5272,1.55681,1.46798,,0,0,,up,ny,mid,below,against
 2026-10-02 20:00,fvg,XRP,60,-1,L,closed,0,2026-10-02 23:18,1.48305,1.50716,1.43483,2026-10-04 15:04,1.50746,-1.08664,stop,up,ny,mid,below,against
 2026-10-03 05:00,hl_pullback,XRP,60,-1,M,closed,0,2026-10-03 05:00,1.4855,1.49475,1.46702,2026-10-03 17:16,1.49504,-1.21822,stop,up,asia,low,below,with
 2026-10-03 16:00,va80,XRP,60,1,M,closed,0,2026-10-03 16:00,1.4903,1.47865,1.55063,2026-10-05 16:00,1.4924,-0.0242107,time,up,ny,low,above,against
 2026-10-03 18:00,ob,XRP,60,1,L,closed,0,2026-10-03 18:54,1.489,1.48168,1.50365,2026-10-04 13:37,1.50365,1.87071,target,up,ny,low,above,with
 2026-10-04 02:00,hl_pullback,XRP,60,1,M,closed,0,2026-10-04 02:00,1.4885,1.48355,1.49839,2026-10-04 06:55,1.49839,1.77056,target,up,asia,low,below,with
-2026-10-04 07:00,ob,XRP,60,1,L,unfilled,0,,0,1.48641,0,,0,0,,up,asia,low,above,with
+2026-10-04 07:00,ob,XRP,60,1,L,unfilled,0,,1.4903,1.48641,1.49807,,0,0,,up,asia,low,above,with
 2026-10-04 16:00,spring,XRP,60,-1,M,closed,0,2026-10-04 16:00,1.5045,1.51062,1.4795,2026-10-04 21:11,1.51092,-1.31176,stop,up,ny,low,above,against
 2026-10-04 22:00,sweep,XRP,60,-1,M,closed,0,2026-10-04 22:00,1.5081,1.51395,1.49639,2026-10-04 22:02,1.51425,-1.31004,stop,up,late,low,above,with
 2026-10-04 22:00,sweep_cont,XRP,60,1,M,closed,0,2026-10-04 22:00,1.5087,1.50465,1.51681,2026-10-04 22:02,1.51681,1.73886,target,up,late,low,above,against
@@ -317,12 +317,12 @@ time,pattern,symbol,tf,side,order,status,agent,entry_time,entry,stop,target,exit
 2026-10-06 14:00,sweep_cont,XRP,60,1,M,closed,0,2026-10-06 14:00,1.515,1.50572,1.53356,2026-10-06 15:54,1.50542,-1.19909,stop,up,ny,low,above,against
 2026-10-06 17:00,fvg,XRP,60,-1,L,closed,0,2026-10-06 18:01,1.5082,1.52399,1.47662,2026-10-07 01:59,1.47662,1.95268,target,up,ny,mid,below,against
 2026-10-07 00:00,sweep_cont,XRP,60,-1,M,closed,0,2026-10-07 00:00,1.4967,1.50103,1.48804,2026-10-07 01:57,1.48804,1.75005,target,up,late,low,below,against
-2026-10-07 02:00,choch,XRP,60,-1,M,open,0,2026-10-07 02:00,1.4758,1.5249,1.37761,2026-10-07 15:59,1.43489,0.798481,end_of_data,up,asia,mid,below,with
-2026-10-07 02:00,ob,XRP,60,-1,L,pending,0,,0,1.5005,0,,0,0,,up,asia,mid,below,with
-2026-10-07 03:00,fvg,XRP,60,-1,L,pending,0,,0,1.50074,0,,0,0,,up,asia,mid,below,against
-2026-10-07 04:00,fvg,XRP,60,-1,L,open,0,2026-10-07 05:32,1.47145,1.49831,1.41773,2026-10-07 15:59,1.43489,1.31642,end_of_data,up,asia,mid,above,against
-2026-10-07 10:00,hl_pullback,XRP,60,-1,M,open,0,2026-10-07 10:00,1.45421,1.47884,1.40496,2026-10-07 15:59,1.43489,0.721529,end_of_data,up,london,mid,below,with
-2026-10-07 10:00,fvg,XRP,60,-1,L,pending,0,,0,1.47794,0,,0,0,,up,london,mid,below,with
-2026-10-07 11:00,fvg,XRP,60,-1,L,pending,0,,0,1.47334,0,,0,0,,up,london,mid,below,against
-2026-10-07 14:00,ob,XRP,60,-1,L,pending,0,,0,1.47892,0,,0,0,,up,ny,mid,below,with
-2026-10-07 15:00,fvg,XRP,60,-1,L,pending,0,,0,1.45301,0,,0,0,,up,ny,mid,below,with
+2026-10-07 02:00,choch,XRP,60,-1,M,open,0,2026-10-07 02:00,1.4758,1.5249,1.37761,2026-10-07 16:24,1.43559,0.784057,end_of_data,up,asia,mid,below,with
+2026-10-07 02:00,ob,XRP,60,-1,L,pending,0,,1.495,1.5005,1.48399,,0,0,,up,asia,mid,below,with
+2026-10-07 03:00,fvg,XRP,60,-1,L,pending,0,,1.48565,1.50074,1.45547,,0,0,,up,asia,mid,below,against
+2026-10-07 04:00,fvg,XRP,60,-1,L,open,0,2026-10-07 05:32,1.47145,1.49831,1.41773,2026-10-07 16:24,1.43559,1.29006,end_of_data,up,asia,mid,above,against
+2026-10-07 10:00,hl_pullback,XRP,60,-1,M,open,0,2026-10-07 10:00,1.45421,1.47884,1.40496,2026-10-07 16:24,1.43559,0.692777,end_of_data,up,london,mid,below,with
+2026-10-07 10:00,fvg,XRP,60,-1,L,pending,0,,1.46725,1.47794,1.44588,,0,0,,up,london,mid,below,with
+2026-10-07 11:00,fvg,XRP,60,-1,L,pending,0,,1.45885,1.47334,1.42986,,0,0,,up,london,mid,below,against
+2026-10-07 14:00,ob,XRP,60,-1,L,pending,0,,1.47,1.47892,1.45216,,0,0,,up,ny,mid,below,with
+2026-10-07 15:00,fvg,XRP,60,-1,L,open,0,2026-10-07 16:05,1.4394,1.45301,1.41217,2026-10-07 16:24,1.43559,0.205775,end_of_data,up,ny,mid,below,with
