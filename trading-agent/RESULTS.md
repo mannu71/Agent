@@ -78,6 +78,28 @@ On the 57 sessions of real 5-minute Nifty data available free, the Baltussen slo
 far below the 0.08 archive line. Too short to prove anything, but nothing argues for keeping D1;
 years of futures intraday data (a paid feed) are needed for a proper test.
 
+## Institutional / smart-money concepts on crypto (7 October 2026)
+
+Nine concepts (ICT sweeps, sweep + absorption, sweep continuation, fair value gaps, order
+blocks, CHoCH, higher-low pullbacks, Wyckoff springs, the 80% rule) coded as exact rules and
+run on Binance 1-minute bars for BTC, ETH, SOL, XRP and BNB, 2020-01 to 2026-09, at 15 min,
+1 h, 4 h and 1 day, with Delta India fees, slippage and funding. Each is compared with a
+matched random entry (same order type and distances, random time). Details and every number:
+`knowledge/concepts.md`.
+
+- Every concept loses after costs at 15 min and 1 h; at 15 min fees and slippage are ~0.3R.
+- Sweep reversals (the core ICT trade) do *worse* than random (t −2.3 at 15 min, −2.7 at
+  1 h), in line with the research that stop runs continue.
+- Fair value gaps beat random at 15 min (+0.07R, t 4.6) but still net −0.10R; at 4 h long
+  FVGs net +0.07R (t 1.9), not significant among ~70 cells tested.
+- The memory-gated agent (take a setup only if its past cases in the same context were
+  profitable) lost in discovery (−0.02 to −0.05R per trade) and in the 2024–26 holdout
+  (1 h: 60 trades, −0.105R; 4 h: 393 trades, −0.057R, −11.9%).
+- Intraday momentum in crypto (Baltussen form) was +6.4 bp/day on BTC in 2020–23 (t 4.8) and
+  +0.8 bp in 2024–26, against ~14 bp of round-trip cost.
+
+No crypto concept passes, so none goes to paper trading.
+
 ## Intraday sleeves on the free 5-minute window (2026-07-16 to 2026-10-06, research runs)
 
 Yahoo serves ~60 sessions of 5-minute bars, and its NSE opening-bar volumes are mostly zero, so

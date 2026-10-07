@@ -140,6 +140,24 @@ void apply_settings(const Config& c, OptionsConfig& o) {
     config_set(c, "c.cost_per_leg_lot", o.cost_per_leg_lot);
 }
 
+void apply_settings(const Config& c, ConceptConfig& s) {
+    config_set(c, "smc.swing_n", s.swing_n);
+    config_set(c, "smc.atr_n", s.atr_n);
+    config_set(c, "smc.rr", s.rr);
+    config_set(c, "smc.stop_buffer_atr", s.stop_buffer_atr);
+    config_set(c, "smc.min_risk_frac", s.min_risk_frac);
+    config_set(c, "smc.hold_bars", s.hold_bars);
+    config_set(c, "smc.order_expiry_bars", s.order_expiry_bars);
+    config_set(c, "smc.sweep_lookback", s.sweep_lookback);
+    config_set(c, "smc.fvg_min_atr", s.fvg_min_atr);
+    config_set(c, "smc.displacement_atr", s.displacement_atr);
+    config_set(c, "smc.range_len", s.range_len);
+    config_set(c, "smc.range_max_atr", s.range_max_atr);
+    config_set(c, "smc.climax_vol_mult", s.climax_vol_mult);
+    config_set(c, "smc.value_area", s.value_area);
+    config_set(c, "smc.profile_bins", s.profile_bins);
+}
+
 std::vector<std::pair<std::string, std::string>> default_settings() {
     const Allocation a;
     const A1Config a1;
@@ -147,6 +165,7 @@ std::vector<std::pair<std::string, std::string>> default_settings() {
     const CryptoTrendConfig b;
     const D1Config d1;
     const OptionsConfig o;
+    const ConceptConfig sc;
     auto f = [](double v) { return fmt_double(v); };
     std::vector<std::pair<std::string, std::string>> out = {
         {"alloc.core", f(a.core)}, {"alloc.buffer", f(a.buffer)}, {"alloc.a1", f(a.a1)}, {"alloc.a2", f(a.a2)},
@@ -235,6 +254,21 @@ std::vector<std::pair<std::string, std::string>> default_settings() {
                            {"d1.min_beta", f(d1.min_beta)},
                            {"d1.min_sleeve_equity", f(d1.min_sleeve_equity)},
                            {"d1.min_history", std::to_string(d1.min_history)},
+                           {"smc.swing_n", std::to_string(sc.swing_n)},
+                           {"smc.atr_n", std::to_string(sc.atr_n)},
+                           {"smc.rr", f(sc.rr)},
+                           {"smc.stop_buffer_atr", f(sc.stop_buffer_atr)},
+                           {"smc.min_risk_frac", f(sc.min_risk_frac)},
+                           {"smc.hold_bars", std::to_string(sc.hold_bars)},
+                           {"smc.order_expiry_bars", std::to_string(sc.order_expiry_bars)},
+                           {"smc.sweep_lookback", std::to_string(sc.sweep_lookback)},
+                           {"smc.fvg_min_atr", f(sc.fvg_min_atr)},
+                           {"smc.displacement_atr", f(sc.displacement_atr)},
+                           {"smc.range_len", std::to_string(sc.range_len)},
+                           {"smc.range_max_atr", f(sc.range_max_atr)},
+                           {"smc.climax_vol_mult", f(sc.climax_vol_mult)},
+                           {"smc.value_area", f(sc.value_area)},
+                           {"smc.profile_bins", std::to_string(sc.profile_bins)},
                            {"c.budget_frac", f(o.budget_frac)},
                            {"c.cost_per_leg_lot", f(o.cost_per_leg_lot)}});
     return out;

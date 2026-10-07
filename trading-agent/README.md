@@ -89,6 +89,14 @@ history for NSE stocks or Nifty futures (A2 and D1 need a paid feed such as Kite
 Delta India price history before its December 2023 launch. Crypto prices are in USD; the sleeve's
 rupee figures apply USD returns to INR capital and ignore the exchange rate.
 
+## Institutional-concept engine
+
+`ta_backtest setups data/crypto_1m --tf 60` runs the concept detectors (`include/ta/concepts.hpp`)
+on 1-minute bars with taker-buy volume (`scripts/fetch_binance_klines.py BTCUSDT 2020-01 2026-09
+data/crypto_1m/BTC.csv`), plays every setup out minute by minute (`include/ta/casebook.hpp`),
+prints each pattern's edge against a matched random entry, then runs the memory-gated portfolio.
+The concept library and results are in `knowledge/`.
+
 ## Backtests
 
 ```sh

@@ -5,6 +5,7 @@
 
 #include "ta/a1.hpp"
 #include "ta/a2.hpp"
+#include "ta/concepts.hpp"
 #include "ta/crypto_trend.hpp"
 #include "ta/d1.hpp"
 #include "ta/kv.hpp"
@@ -22,6 +23,7 @@ void apply_settings(const Config& c, A2Config& a2);
 void apply_settings(const Config& c, CryptoTrendConfig& b);
 void apply_settings(const Config& c, D1Config& d1);
 void apply_settings(const Config& c, OptionsConfig& o);
+void apply_settings(const Config& c, ConceptConfig& s);
 
 // All recognised keys with their default values, for `ta_paper init` and the README.
 std::vector<std::pair<std::string, std::string>> default_settings();
